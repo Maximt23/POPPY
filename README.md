@@ -1,6 +1,27 @@
-# 🐶 Code-Puppy Project Workspace
+# 🐶 Code-Puppy Monorepo
 
-Welcome to your multi-project workspace! This setup allows you to easily switch between projects.
+Welcome to your **monorepo workspace**! Everything lives in one Git repository for complete version history.
+
+## 🗂️  Monorepo Structure
+
+```
+PersonalAI/                 ← Git root (monorepo)
+├── .git/                   ← Version control
+├── P1/                     📱 WearWise (React Native)
+├── P2/                     🚀 Project Two (Node.js)
+├── admin/                  🎛️ Admin Console (CLI)
+├── agents/                 🤖 Shared agent configs
+│   ├── agent-xxx.json
+│   └── README.md
+├── select-project.bat      🎯 Quick selector
+└── README.md
+```
+
+### 🤖 Agents Folder (`/agents/`)
+- Each agent is a separate JSON file
+- Tracked by Git = version history of all agent changes
+- Shared across all projects in the monorepo
+- No more remaking agents!
 
 ## 📁 Projects
 
@@ -8,29 +29,28 @@ Welcome to your multi-project workspace! This setup allows you to easily switch 
 - **Location**: `\PersonalAI\P1`
 - **Type**: React Native + Expo 55
 - **Features**: Camera, Location, SQLite
-- **Start**: `npm start` (runs Expo)
+- **Start**: `npm start`
+- **Tracked in monorepo**: ✅
 
 ### 2. 🚀 Project Two (P2) - Node.js Server
 - **Location**: `\PersonalAI\P2`
 - **Type**: Node.js + Express
 - **Features**: REST API, Health checks
-- **Start**: `npm start` (runs on port 3000)
+- **Start**: `npm start`
+- **Tracked in monorepo**: ✅
 
 ### 3. 🎛️ Admin Console (Admin) - Management Tool
 - **Location**: `\PersonalAI\admin`
 - **Type**: Node.js CLI Application
 - **Features**:
   - 📅 **Daily Focus Planning** - Set which projects to work on each day
-  - 🤖 **Agent Inventory** - Store and manage reusable agents
+  - 🤖 **Agent Inventory** - Store and manage reusable agents in `/agents/`
   - 🔄 **Agent Sharing** - Share agents between projects seamlessly
   - 📊 **Usage Tracking** - Monitor agent and project usage
   - 🚀 **New Project Wizard** - Scaffold new projects with starter agents
   - ⚡ **Quick Agent Mode** - Fast-track agent creation
-  - 🌐 **Git Integration** - Sync projects and agents to Git
-    - Auto-initialize Git repos for new projects
-    - Push agents to GitHub/GitLab/Bitbucket
-    - Sync project changes to version control
-    - Auto-sync on exit option
+  - 📝 **Monorepo Commits** - Commit all changes with version history
+  - 📊 **Git Status** - View what's changed in the monorepo
 - **Start**: `npm start` or `node admin.js`
 - **Theme**: Green terminal UI 🟢
 
@@ -85,29 +105,36 @@ cd ..       # Go back to workspace root
   - 🐛 Debug Helper
   - 🎨 UI/UX Reviewer
 
-### 🌐 Git Integration
+### 📝 Monorepo Version Control
 
-**Setup Git Sync:**
-1. Go to **System Settings → Git Configuration**
-2. Choose provider: GitHub / GitLab / Bitbucket
-3. Enter your username and Personal Access Token
-4. Set default agents repository name
-5. Enable auto-sync (optional) - agents sync on exit
+Everything in this workspace is tracked by **one Git repository** at the PersonalAI root:
 
-**Features:**
-- **☁️ Sync Project to Git** - Push any project to Git with one click
-- **Auto-Init** - New projects automatically get Git initialized
-- **Agent Backup** - Export all agents to structured JSON files
-- **Auto-Sync** - Automatically sync agents when exiting admin
+**What's Tracked:**
+- ✅ All projects (P1, P2, P3...)
+- ✅ All agents (`/agents/` folder)
+- ✅ Admin configuration
+- ✅ Project selector script
 
-**Git Workflow:**
+**What's NOT Tracked:**
+- ❌ `node_modules/` (auto-generated)
+- ❌ `.env` files (secrets)
+- ❌ Daily logs (session data)
+
+**Workflow:**
 ```
-Create New Project → Git initialized automatically
-                   ↓
-Make changes → ☁️ Sync Project to Git
-                   ↓
-Commit & push to GitHub/GitLab
+Make changes → 📝 Commit Changes (in Admin Console)
+                    ↓
+             Git records everything
+                    ↓
+         View history anytime (Git Status)
 ```
+
+**Benefits:**
+- 📜 Complete history of all changes
+- 🔄 Roll back to any point
+- 🤝 Share entire workspace with others
+- ☁️ Push to GitHub/GitLab for backup (optional)
+- 🆓 100% FREE - no costs ever
 
 ## 🔧 Quick Commands
 
@@ -117,6 +144,8 @@ Commit & push to GitHub/GitLab
 | Run Project Two | `cd P2 && npm start` |
 | Launch Admin | `cd admin && npm start` |
 | Open Selector | `.\select-project.bat` |
+| **Commit Changes** | `cd .. && git add . && git commit -m "message"` |
+| **View Git Log** | `cd .. && git log --oneline` |
 | Install P1 deps | `cd P1 && npm install` |
 | Install P2 deps | `cd P2 && npm install` |
 | Install Admin deps | `cd admin && npm install` |
@@ -127,8 +156,8 @@ When you launch the admin console, you'll see:
 
 ```
 ⚡ Quick Actions
-  🚀 Start New Project
-  ⚡ Quick Agent Mode
+  🚀 Start New Project        ← Creates P3, P4, etc.
+  ⚡ Quick Agent Mode         ← Batch create agents
 
 📋 Daily Planning
   📅 Set Today's Focus
@@ -137,19 +166,20 @@ When you launch the admin console, you'll see:
 🗂️  Projects
   📁 Manage Projects
   🚀 Quick Launch Project
-  ☁️  Sync Project to Git       ← NEW!
 
 🤖 Agent Inventory
-  📦 View All Agents
-  ➕ Add New Agent
+  📦 View All Agents          ← Shows /agents/ folder
+  ➕ Add New Agent           ← Saves to /agents/
   🔄 Share Agent
   ⚙️  Agent Settings
 
+📝 Monorepo                  ← NEW!
+  📝 Commit Changes         ← Records all changes
+  📊 View Git Status        ← See what's changed
+
 ⚡ System
   🔧 System Settings
-  🌐 Git Configuration          ← NEW!
-  ☁️  Sync Agents to Git        ← NEW!
-  🚪 Exit (auto-syncs if enabled)
+  🚪 Exit (asks to commit)
 ```
 
 ## 📝 Notes
