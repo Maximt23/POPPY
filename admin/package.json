@@ -1,18 +1,38 @@
 {
   "name": "poppy-admin",
   "version": "1.0.0",
-  "description": "POPPY Admin CLI - Project & Agent Management with Git Integration",
+  "description": "POPPY - Universal AI Project Manager for organizing code across any AI coding engine",
   "main": "admin.js",
+  "bin": {
+    "poppy": "./bin/poppy.js"
+  },
   "type": "module",
   "scripts": {
     "start": "node admin.js",
     "admin": "node admin.js"
   },
+  "keywords": [
+    "project-manager",
+    "ai-assistant",
+    "code-organization",
+    "agent-management",
+    "monorepo",
+    "cli"
+  ],
+  "author": "Maxim",
+  "license": "MIT",
   "dependencies": {
     "boxen": "^8.0.1",
     "chalk": "^5.3.0",
     "inquirer": "^9.2.0",
     "ora": "^9.3.0",
     "simple-git": "^3.22.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Maximt23/code-puppy-POPPY.git"
   }
 }

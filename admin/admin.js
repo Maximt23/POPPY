@@ -5,9 +5,19 @@ import ora from 'ora';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
+
+// Import configuration system
+import { loadConfig, saveConfig, ENGINES, setupEngine, setApiKey } from './lib/config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Detect if running locally or globally
+const isGlobalInstall = !__dirname.includes('PersonalAI');
+
+// Load POPPY configuration
+let poppyConfig = await loadConfig();
 
 // ANSI 256-color codes for authentic green gradient
 const ansi = {
@@ -18,19 +28,6 @@ const ansi = {
   g85: (text) => `\x1b[1;38;5;85m${text}\x1b[0m`,
   g86: (text) => `\x1b[1;38;5;86m${text}\x1b[0m`,
   
-  // Darker greens for tortoise (22, 28, 29, 34, 35, 40, 41, 42)
-  d22: (text) => `\x1b[38;5;22m${text}\x1b[0m`,
-  d28: (text) => `\x1b[38;5;28m${text}\x1b[0m`,
-  d29: (text) => `\x1b[38;5;29m${text}\x1b[0m`,
-  d34: (text) => `\x1b[38;5;34m${text}\x1b[0m`,
-  d35: (text) => `\x1b[38;5;35m${text}\x1b[0m`,
-  d40: (text) => `\x1b[38;5;40m${text}\x1b[0m`,
-  d41: (text) => `\x1b[38;5;41m${text}\x1b[0m`,
-  d42: (text) => `\x1b[38;5;42m${text}\x1b[0m`,
-  d44: (text) => `\x1b[38;5;44m${text}\x1b[0m`,
-  d45: (text) => `\x1b[38;5;45m${text}\x1b[0m`,
-  d46: (text) => `\x1b[38;5;46m${text}\x1b[0m`,
-  
   // Accent colors
   c48: (text) => `\x1b[38;5;48m${text}\x1b[0m`,
   c51: (text) => `\x1b[38;5;51m${text}\x1b[0m`,
@@ -38,7 +35,7 @@ const ansi = {
   c226: (text) => `\x1b[38;5;226m${text}\x1b[0m`,
 };
 
-// 🎨 Poppy's Green Battle Theme (using chalk for compatibility)
+// 🎨 POPPY Theme
 const theme = {
   primary: chalk.hex('#22c55e'),
   secondary: chalk.hex('#16a34a'),
@@ -49,6 +46,10 @@ const theme = {
   weapon: chalk.hex('#a1a1aa'),
   warning: chalk.hex('#f59e0b'),
   error: chalk.hex('#ef4444'),
+  info: chalk.hex('#3b82f6'),
+  white: chalk.white,
+  dim: chalk.gray
+};  error: chalk.hex('#ef4444'),
   info: chalk.hex('#3b82f6'),
   white: chalk.white,
   dim: chalk.gray
