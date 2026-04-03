@@ -1506,7 +1506,7 @@ async function commitMonorepo() {
 
 async function showGitStatus() {
   showHeader();
-  log.title('📊 Monorepo Git Status');
+  log.title('📊 Code-Puppy Monorepo Status');
 
   const { exec } = await import('child_process');
   const { promisify } = await import('util');
@@ -1516,9 +1516,40 @@ async function showGitStatus() {
     // Check if git initialized
     await execAsync('git rev-parse --git-dir', { cwd: ROOT_DIR });
     
-    // Get status
-    const { stdout: status } = await execAsync('git status', { cwd: ROOT_DIR });
-    console.log(theme.dim(status));
+    // Get branch info
+    const { stdout: branch } = await execAsync('git branch --show-current', { cwd: ROOT_DIR });
+    log.info(`Current branch: ${theme.accent(branch.trim())}`);
+    
+    // Get short status with stats
+    const { stdout: statusShort } = await execAsync('git status --short', { cwd: ROOT_DIR });
+    
+    if (statusShort.trim()) {
+      log.title('📝 Uncommitted Changes');
+      const lines = statusShort.trim().split('\n');
+      const modified = lines.filter(l => l.startsWith(' M') || l.startsWith('M')).length;
+      const added = lines.filter(l => l.startsWith('A') || l.startsWith('??')).length;
+      const deleted = lines.filter(l => l.startsWith(' D')).length;
+      
+      if (modified) log.warning(`${modified} modified file(s)`);
+      if (added) log.success(`${added} new/added file(s)`);
+      if (deleted) log.error(`${deleted} deleted file(s)`);
+      
+      console.log(theme.dim(statusShort));
+    } else {
+      log.success('✓ Working directory is clean - no uncommitted changes');
+    }
+    
+    log.divider();
+    
+    // Check if there are unpushed commits
+    const { stdout: unpushed } = await execAsync('git log origin/master..master --oneline 2>nul || echo ""', { cwd: ROOT_DIR }).catch(() => ({ stdout: '' }));
+    if (unpushed.trim()) {
+      log.title('🚀 Unpushed Commits');
+      console.log(theme.warning(unpushed));
+      log.info('Run "Commit Changes" to push to GitHub');
+    } else {
+      log.info('All commits are synced with GitHub');
+    }
     
     log.divider();
     

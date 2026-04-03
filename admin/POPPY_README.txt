@@ -1,9 +1,19 @@
-POPPY Admin
-============
+POPPY - Code-Puppy Project Admin
+=================================
 
-SETUP INSTRUCTIONS
-------------------
+POPPY is the admin console for managing Code-Puppy projects and agents.
+It tracks changes, manages your monorepo, and keeps everything organized.
 
+FEATURES
+--------
+- Project Management: Create, track, and launch projects
+- Agent Inventory: Manage all your Code-Puppy agents
+- Git Integration: See repo changes, commit, and sync
+- Daily Focus: Set and track daily objectives
+- Monorepo Support: Works across all your projects
+
+SETUP
+-----
 1. RUN SETUP (one time only):
    .\setup.cmd
    
@@ -18,16 +28,30 @@ SETUP INSTRUCTIONS
    poppy --version    - Show version
 
 
-ALTERNATIVE (if setup doesn't work):
-------------------------------------
-Manually add this folder to your PATH:
-1. Windows Key + "environment variables"
-2. Click "Environment Variables..."
-3. Under "User variables", find PATH, click Edit
-4. Click New, paste this folder path:
-   C:\Users\maxim\PersonalAI\admin
-5. Click OK, close all windows
-6. Restart your terminal
+COMMANDS
+--------
+In the interactive menu:
+- Start New Project     : Scaffold a new Code-Puppy project
+- Quick Agent Mode      : Work with agents directly
+- Set Today's Focus     : Track daily objectives
+- View Today's Log      : See what you worked on
+- Manage Projects       : List and manage all projects
+- Quick Launch Project  : Open a project in your editor
+- View All Agents       : Browse your agent inventory
+- Add New Agent         : Create a new agent
+- Share Agent           : Export agents for sharing
+- Commit Changes        : Commit monorepo changes to Git
+- View Git Status       : See all pending changes
+- System Settings       : Configure POPPY
+
+
+GIT INTEGRATION
+---------------
+POPPY tracks all changes in your Code-Puppy monorepo:
+- Shows modified files
+- Shows untracked files
+- Quick commit with meaningful messages
+- Syncs with GitHub
 
 
 QUICK START
@@ -36,11 +60,9 @@ After setup, just type:
 
    poppy
 
-And the POPPY admin console will launch!
+The admin console will show your current git status and available actions.
 
 
-ABOUT POPPY
------------
   ██████╗  ██████╗ ██████╗ ██████╗ ██╗   ██╗
   ██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██║   ██║
   ██████╔╝██║   ██║██████╔╝██████╔╝╚██████╔╝
@@ -48,4 +70,4 @@ ABOUT POPPY
   ██║     ╚██████╔╝██║     ██║         ██║
   ╚═╝      ╚══════╝╚═╝     ╚═╝         ╚═╝
 
-Your friendly admin console for managing projects and agents.
+Code-Puppy Project Management Admin
