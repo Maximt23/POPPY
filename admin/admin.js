@@ -462,18 +462,22 @@ async function mainMenu() {
       { name: theme.accent('Manage Projects'), value: 'projects' },
       { name: theme.accent('Quick Launch Project'), value: 'launch' },
       
-      new inquirer.Separator(theme.dim('--- Agent Inventory ---')),
-      { name: theme.primary('View All Agents'), value: 'list-agents' },
-      { name: theme.primary('Add New Agent'), value: 'add-agent' },
-      { name: theme.primary('Share Agent'), value: 'share-agent' },
-      { name: theme.primary('Agent Settings'), value: 'agent-settings' },
+      new inquirer.Separator(theme.dim('--- Agent Marketplace ---')),
+      { name: theme.primary('Browse Marketplace'), value: 'marketplace' },
+      { name: theme.primary('Install Agent'), value: 'install-agent' },
+      { name: theme.primary('Publish My Agent'), value: 'publish-agent' },
+      { name: theme.primary('Manage API Keys'), value: 'api-keys' },
+      
+      new inquirer.Separator(theme.dim('--- Local Agents ---')),
+      { name: theme.accent('My Agents'), value: 'list-agents' },
+      { name: theme.accent('Create Agent'), value: 'add-agent' },
       
       new inquirer.Separator(theme.dim('--- Monorepo ---')),
       { name: theme.info('Commit Changes'), value: 'commit-monorepo' },
       { name: theme.info('View Git Status'), value: 'git-status' },
       
       new inquirer.Separator(theme.dim('--- System ---')),
-      { name: theme.warning('System Settings'), value: 'settings' },
+      { name: theme.warning('Settings'), value: 'settings' },
       { name: theme.error('Exit'), value: 'exit' }
     ],
     pageSize: 20
