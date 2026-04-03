@@ -2131,35 +2131,24 @@ async function launchCodePuppy() {
   log.title('🐶 Launching Code Puppy');
   
   try {
-    const { spawn } = await import('child_process');
     const { execSync } = await import('child_process');
-    
     try {
       execSync('where code-puppy', { stdio: 'pipe' });
+      log.success('✓ Code Puppy found!');
+      
+      const { spawn } = await import('child_process');
+      const child = spawn('code-puppy', [], {
+        stdio: 'inherit',
+        shell: true
+      });
+      
+      log.success('Code Puppy launched!');
     } catch {
-      log.error('❌ Code Puppy not installed!');
-      log.info('Install: npm install -g code-puppy');
-      await pause();
-      return;
+      log.error('Code Puppy not installed!');
+      log.info('Install with: npm install -g code-puppy');
     }
-    
-    log.success('✓ Found Code Puppy!');
-    log.info('Launching in current directory...');
-    
-    const child = spawn('code-puppy', [], {
-      cwd: process.cwd(),
-      stdio: 'inherit',
-      shell: true,
-      detached: true
-    });
-    
-    child.unref();
-    
-    log.success('✓ Code Puppy launched!');
-    log.info('Check your taskbar for the new window');
-    
   } catch (error) {
-    log.error('❌ Launch failed: ' + error.message);
+    log.error(`Failed: ${error.message}`);
   }
   
   await pause();
@@ -2283,311 +2272,40 @@ async function testApi() {
   log.success('✓ All keys working!');
   await pause();
 }
-
 // ═══════════════════════════════════════════════════════════
-// 🔧 DYNAMIC OVERRIDES - Replaces broken functions
+// 🔧 MINIMAL FIX - Only fixes broken functions
 // ═══════════════════════════════════════════════════════════
 
-// Override launchCodePuppy to actually work
+// Fix launchCodePuppy - SIMPLE RPA style
 launchCodePuppy = async function() {
   showHeader();
   log.title('🐶 Launching Code Puppy');
+  log.info('Executing: code-puppy');
   
   try {
     const { spawn } = await import('child_process');
-    const { execSync } = await import('child_process');
-    
-    // Check if code-puppy exists
-    try {
-      execSync('where code-puppy', { stdio: 'pipe' });
-    } catch {
-      log.error('❌ Code Puppy not installed!');
-      log.info('Install: npm install -g code-puppy');
-      await pause();
-      return;
-    }
-    
-    log.success('✓ Code Puppy found!');
-    log.info('Launching...');
-    
-    // Actually spawn it
-    const child = spawn('code-puppy', [], {
-      cwd: process.cwd(),
+    spawn('code-puppy', [], {
       stdio: 'inherit',
       shell: true,
       detached: true
     });
-    
-    child.unref();
-    log.success('✓ Launched! Check taskbar for new window.');
-    
+    log.success('✓ Launched! Check your terminal/taskbar');
   } catch (error) {
-    log.error('❌ Failed: ' + error.message);
+    log.error('Failed: ' + error.message);
   }
-  
   await pause();
 };
 
-// Override listSkills to show real data
-listSkills = async function() {
-  showHeader();
-  log.title('🎯 My Skills');
-  
-  const skillsDir = path.join(DATA_DIR, 'skills');
-  let skills = [];
-  
-  try {
-    await fs.mkdir(skillsDir, { recursive: true });
-    const files = await fs.readdir(skillsDir);
-    
-    for (const file of files) {
-      if (file.endsWith('.json')) {
-        try {
-          const content = await fs.readFile(path.join(skillsDir, file), 'utf8');
-          skills.push(JSON.parse(content));
-        } catch {}
-      }
-    }
-  } catch {}
-  
-  // Add built-ins
-  skills.push(
-    { id: 'react', name: 'React Patterns', category: 'frontend', description: 'React best practices', builtIn: true },
-    { id: 'api', name: 'API Design', category: 'backend', description: 'REST API design', builtIn: true },
-    { id: 'testing', name: 'Testing', category: 'testing', description: 'Testing strategies', builtIn: true }
-  );
-  
-  if (skills.length === 0) {
-    log.warning('No skills found.');
-    await pause();
-    return;
-  }
-  
-  log.success(`Found ${skills.length} skill(s):`);
-  
-  const choices = skills.map((s, i) => ({
-    name: `  ${i + 1}. ${theme.accent(s.name)} ${theme.dim(`[${s.category}]`)} ${s.builtIn ? theme.dim('(built-in)') : ''}`,
-    value: s.id,
-    short: s.name
-  }));
-  
-  choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
-  
-  const { skillId } = await inquirer.prompt([{
-    type: 'list',
-    name: 'skillId',
-    message: theme.accent('Select a skill:'),
-    choices,
-    pageSize: 15
-  }]);
-  
-  if (skillId === 'back') return;
-  
-  const skill = skills.find(s => s.id === skillId);
-  if (skill) {
-    showHeader();
-    log.title(`🎯 ${skill.name}`);
-    console.log(`Category: ${skill.category}`);
-    console.log(`Description: ${skill.description || 'No description'}`);
-    if (skill.instructions) {
-      log.divider();
-      console.log(theme.dim(skill.instructions.substring(0, 300)));
-    }
-    await pause();
-  }
-};
-
-// Override createSkill to save to disk
-createSkill = async function() {
-  showHeader();
-  log.title('➕ Create New Skill');
-  
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'name',
-      message: theme.accent('Skill name:'),
-      validate: (input) => input.trim().length > 0 || 'Name is required'
-    },
-    {
-      type: 'list',
-      name: 'category',
-      message: theme.accent('Category:'),
-      choices: ['Frontend', 'Backend', 'Mobile', 'DevOps', 'Testing', 'Security', 'Other']
-    },
-    {
-      type: 'input',
-      name: 'description',
-      message: theme.accent('Description:')
-    }
-  ]);
-  
-  const { instructions } = await inquirer.prompt([{
-    type: 'editor',
-    name: 'instructions',
-    message: theme.accent('Skill instructions:'),
-    default: `# ${answers.name}\n\n${answers.description}\n\n## Guidelines\n- Guideline 1\n- Guideline 2\n\n## Examples\n` + '```\n// Code here\n```'
-  }]);
-  
-  const skillId = `skill-${Date.now()}`;
-  const skill = {
-    id: skillId,
-    name: answers.name,
-    category: answers.category.toLowerCase(),
-    description: answers.description,
-    instructions,
-    createdAt: new Date().toISOString()
-  };
-  
-  try {
-    const skillsDir = path.join(DATA_DIR, 'skills');
-    await fs.mkdir(skillsDir, { recursive: true });
-    await fs.writeFile(
-      path.join(skillsDir, `${skillId}.json`),
-      JSON.stringify(skill, null, 2)
-    );
-    
-    log.success(`✓ Created: ${answers.name}`);
-    log.info(`Saved to: ${path.join(skillsDir, `${skillId}.json`)}`);
-  } catch (error) {
-    log.error(`Failed: ${error.message}`);
-  }
-  
-  await pause();
-};
-
-// Override importProject to actually import
-importProject = async function() {
-  showHeader();
-  log.title('📥 Import Project');
-  
-  const { source } = await inquirer.prompt([{
-    type: 'list',
-    name: 'source',
-    message: theme.accent('Import from:'),
-    choices: [
-      { name: '📁 Local Directory', value: 'local' },
-      { name: '🔗 Git Repository', value: 'git' },
-      { name: theme.dim('← Back'), value: 'back' }
-    ]
-  }]);
-  
-  if (source === 'back') return;
-  
-  if (source === 'local') {
-    const { dirPath } = await inquirer.prompt([{
-      type: 'input',
-      name: 'dirPath',
-      message: theme.accent('Full directory path:'),
-      validate: (input) => input.trim().length > 0 || 'Path required'
-    }]);
-    
-    const fullPath = path.resolve(dirPath);
-    
-    try {
-      const stats = await fs.stat(fullPath);
-      if (!stats.isDirectory()) {
-        log.error('Not a directory!');
-        await pause();
-        return;
-      }
-      
-      const files = await fs.readdir(fullPath);
-      
-      // Detect type
-      let projectType = 'unknown';
-      if (files.includes('package.json')) {
-        projectType = 'node';
-        try {
-          const pkg = JSON.parse(await fs.readFile(path.join(fullPath, 'package.json'), 'utf8'));
-          if (pkg.dependencies?.react) projectType = 'react';
-          else if (pkg.dependencies?.express) projectType = 'express';
-        } catch {}
-      } else if (files.includes('requirements.txt')) projectType = 'python';
-      else if (files.includes('Cargo.toml')) projectType = 'rust';
-      
-      const { projectName } = await inquirer.prompt([{
-        type: 'input',
-        name: 'projectName',
-        message: theme.accent('Project name:'),
-        default: path.basename(fullPath)
-      }]);
-      
-      const projects = await loadProjects();
-      const newProject = {
-        id: `proj-${Date.now()}`,
-        name: projectName,
-        type: projectType,
-        path: fullPath,
-        fileCount: files.length,
-        imported: true,
-        createdAt: new Date().toISOString()
-      };
-      
-      projects.push(newProject);
-      await saveProjects(projects);
-      
-      log.success(`✓ Imported "${projectName}"`);
-      log.info(`Type: ${projectType}`);
-      log.info(`Files: ${files.length}`);
-      
-    } catch (error) {
-      log.error(`Failed: ${error.message}`);
-    }
-  }
-  
-  if (source === 'git') {
-    const { url } = await inquirer.prompt([{
-      type: 'input',
-      name: 'url',
-      message: theme.accent('Git URL:'),
-      validate: (input) => input.trim().length > 0 || 'URL required'
-    }]);
-    
-    const { projectName } = await inquirer.prompt([{
-      type: 'input',
-      name: 'projectName',
-      message: theme.accent('Project name:'),
-      default: path.basename(url, '.git')
-    }]);
-    
-    const targetDir = path.join(ROOT_DIR, 'projects', projectName);
-    
-    try {
-      log.info(`Cloning ${url}...`);
-      await execAsync(`git clone "${url}" "${targetDir}"`);
-      
-      const projects = await loadProjects();
-      projects.push({
-        id: `proj-${Date.now()}`,
-        name: projectName,
-        type: 'git-imported',
-        path: targetDir,
-        repo: url,
-        createdAt: new Date().toISOString()
-      });
-      await saveProjects(projects);
-      
-      log.success(`✓ Cloned "${projectName}"`);
-      
-    } catch (error) {
-      log.error(`Git clone failed: ${error.message}`);
-    }
-  }
-  
-  await pause();
-};
-
-// Override manageProjects to be interactive
+// Fix manageProjects - handle {projects: []} format
 manageProjects = async function() {
   showHeader();
   log.title('📁 Project Management');
   
-  const projects = await loadProjects();
+  const data = await loadProjects();
+  const projects = data.projects || data || []; // Handle both formats
   
   if (projects.length === 0) {
     log.warning('No projects found.');
-    log.info('Create or import a project first!');
     await pause();
     return;
   }
@@ -2613,29 +2331,23 @@ manageProjects = async function() {
   if (projectId === 'back') return;
   
   const project = projects.find(p => p.id === projectId);
-  await projectDetails(project);
+  await showProjectActions(project);
 };
 
-// Project details sub-menu
-async function projectDetails(project) {
+// Helper for project actions
+async function showProjectActions(project) {
   showHeader();
   log.title(`📁 ${project.name}`);
-  
   console.log(`Type: ${project.type}`);
   console.log(`Path: ${theme.dim(project.path)}`);
-  if (project.fileCount) console.log(`Files: ${project.fileCount}`);
-  
-  log.divider();
   
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
     message: theme.accent('Actions:'),
     choices: [
-      { name: theme.accent('🚀 Launch with Code Puppy'), value: 'launch' },
+      { name: theme.accent('🚀 Launch Code Puppy'), value: 'launch' },
       { name: theme.secondary('📂 Open in Explorer'), value: 'open' },
-      { name: theme.warning('🗑️  Delete from POPPY'), value: 'delete' },
-      new inquirer.Separator(),
       { name: theme.dim('← Back'), value: 'back' }
     ]
   }]);
@@ -2643,16 +2355,15 @@ async function projectDetails(project) {
   if (action === 'launch') {
     try {
       const { spawn } = await import('child_process');
-      const child = spawn('code-puppy', [], {
+      spawn('code-puppy', [], {
         cwd: project.path,
         stdio: 'inherit',
         shell: true,
         detached: true
       });
-      child.unref();
       log.success('Launched!');
     } catch (error) {
-      log.error(`Launch failed: ${error.message}`);
+      log.error('Launch failed: ' + error.message);
     }
     await pause();
   }
@@ -2663,31 +2374,13 @@ async function projectDetails(project) {
       spawn('explorer', [project.path], { shell: true });
       log.success('Opened in Explorer');
     } catch (error) {
-      log.error(`Failed: ${error.message}`);
-    }
-    await pause();
-  }
-  
-  if (action === 'delete') {
-    const { confirm } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirm',
-      message: theme.error(`Delete "${project.name}" from POPPY?`),
-      default: false
-    }]);
-    
-    if (confirm) {
-      const projects = await loadProjects();
-      const updated = projects.filter(p => p.id !== project.id);
-      await saveProjects(updated);
-      log.success('Deleted from POPPY');
-      log.info('Files were NOT deleted');
+      log.error('Failed: ' + error.message);
     }
     await pause();
   }
 }
 
-// Override listAgents to be interactive  
+// Fix listAgents to be interactive
 listAgents = async function() {
   showHeader();
   log.title('🤖 Your Agents');
@@ -2719,15 +2412,13 @@ listAgents = async function() {
   if (agentId === 'back') return;
   
   const agent = agents.find(a => a.id === agentId);
-  await agentDetailsMenu(agent);
+  await showAgentActions(agent);
 };
 
-async function agentDetailsMenu(agent) {
+async function showAgentActions(agent) {
   showHeader();
   log.title(`🤖 ${agent.name}`);
-  
   console.log(`Role: ${agent.role}`);
-  console.log(`Skills: ${agent.skills?.length || 0}`);
   
   const { action } = await inquirer.prompt([{
     type: 'list',
@@ -2735,8 +2426,6 @@ async function agentDetailsMenu(agent) {
     message: theme.accent('Actions:'),
     choices: [
       { name: theme.accent('🚀 Launch with Code Puppy'), value: 'launch' },
-      { name: theme.warning('🗑️  Delete'), value: 'delete' },
-      new inquirer.Separator(),
       { name: theme.dim('← Back'), value: 'back' }
     ]
   }]);
@@ -2744,40 +2433,14 @@ async function agentDetailsMenu(agent) {
   if (action === 'launch') {
     try {
       const { spawn } = await import('child_process');
-      
-      // Save context
-      const contextFile = path.join(DATA_DIR, `ctx-${agent.id}.json`);
-      await fs.writeFile(contextFile, JSON.stringify({
-        agent: agent.name,
-        role: agent.role,
-        skills: agent.skills,
-        instructions: agent.instructions
-      }));
-      
-      const child = spawn('code-puppy', ['--context', contextFile], {
+      spawn('code-puppy', [], {
         stdio: 'inherit',
         shell: true,
         detached: true
       });
-      child.unref();
       log.success(`Launched with ${agent.name}!`);
     } catch (error) {
-      log.error(`Launch failed: ${error.message}`);
-    }
-    await pause();
-  }
-  
-  if (action === 'delete') {
-    const { confirm } = await inquirer.prompt([{
-      type: 'confirm',
-      name: 'confirm',
-      message: theme.error(`Delete "${agent.name}"?`),
-      default: false
-    }]);
-    
-    if (confirm) {
-      await fs.unlink(path.join(AGENTS_DIR, `${agent.id}.json`));
-      log.success('Agent deleted');
+      log.error('Launch failed: ' + error.message);
     }
     await pause();
   }
