@@ -1,202 +1,311 @@
-# 🐶 Code-Puppy Monorepo
+# 🐶 POPPY - Universal AI Project Manager
 
-Welcome to your **monorepo workspace**! Everything lives in one Git repository for complete version history.
+**POPPY** is a universal overlay for AI coding engines (Codex, Claude Code, Cursor) that manages projects, agents, skills, and workflows across all your AI tools.
 
-## 🗂️  Monorepo Structure
+Like `code-puppy`, but for managing all your AI engines and projects in one place.
 
-```
-PersonalAI/                 ← Git root (monorepo)
-├── .git/                   ← Version control
-├── P1/                     📱 WearWise (React Native)
-├── P2/                     🚀 Project Two (Node.js)
-├── admin/                  🎛️ Admin Console (CLI)
-├── agents/                 🤖 Shared agent configs
-│   ├── agent-xxx.json
-│   └── README.md
-├── select-project.bat      🎯 Quick selector
-└── README.md
-```
+## 🚀 Quick Start (2 Steps)
 
-### 🤖 Agents Folder (`/agents/`)
-- Each agent is a separate JSON file
-- Tracked by Git = version history of all agent changes
-- Shared across all projects in the monorepo
-- No more remaking agents!
-
-## 📁 Projects
-
-### 1. 📱 WearWise (P1) - React Native App
-- **Location**: `\PersonalAI\P1`
-- **Type**: React Native + Expo 55
-- **Features**: Camera, Location, SQLite
-- **Start**: `npm start`
-- **Tracked in monorepo**: ✅
-
-### 2. 🚀 Project Two (P2) - Node.js Server
-- **Location**: `\PersonalAI\P2`
-- **Type**: Node.js + Express
-- **Features**: REST API, Health checks
-- **Start**: `npm start`
-- **Tracked in monorepo**: ✅
-
-### 3. 🎛️ Admin Console (Admin) - Management Tool
-- **Location**: `\PersonalAI\admin`
-- **Type**: Node.js CLI Application
-- **Features**:
-  - 📅 **Daily Focus Planning** - Set which projects to work on each day
-  - 🤖 **Agent Inventory** - Store and manage reusable agents in `/agents/`
-  - 🔄 **Agent Sharing** - Share agents between projects seamlessly
-  - 📊 **Usage Tracking** - Monitor agent and project usage
-  - 🚀 **New Project Wizard** - Scaffold new projects with starter agents
-  - ⚡ **Quick Agent Mode** - Fast-track agent creation
-  - 📝 **Monorepo Commits** - Commit all changes with version history
-  - 📊 **Git Status** - View what's changed in the monorepo
-- **Start**: `npm start` or `node admin.js`
-- **Theme**: Green terminal UI 🟢
-
-## 🎯 How to Switch Projects
-
-### Option 1: Use the Selector Script (Recommended)
+### Step 1: Clone POPPY
 ```bash
-# From anywhere in \PersonalAI
-.\select-project.bat
+git clone https://github.com/Maximt23/code-puppy-POPPY.git
 ```
-Then choose:
-- `1` for WearWise (P1)
-- `2` for Project Two (P2)
-- `A` for **Admin Console** (project & agent management)
-- `3` to stay in current directory
 
-### Option 2: Manual Navigation
+### Step 2: Run Setup
+**Windows:**
+```cmd
+cd code-puppy-POPPY\admin
+SETUP_POPPY.cmd
+```
+
+**Mac/Linux:**
 ```bash
-cd P1       # Go to WearWise
-cd P2       # Go to Project Two
-cd admin    # Go to Admin Console
-cd ..       # Go back to workspace root
+cd code-puppy-POPPY/admin
+chmod +x SETUP_POPPY.sh
+./SETUP_POPPY.sh
 ```
 
-## 🎯 Admin Console Features
-
-### ⚡ Quick Actions
-- **🚀 Start New Project** - Interactive wizard to create projects:
-  - Choose type: React Native, Node.js/Express, React Web, Python, or Empty
-  - Auto-generate starter files (package.json, README, etc.)
-  - Create starter agents automatically
-  - Project gets unique ID and is added to registry
-
-- **⚡ Quick Agent Mode** - Fast-track agent creation:
-  - Create multiple agents in quick succession
-  - Type "done" to finish at any time
-  - Agents automatically saved to inventory
-
-### Daily Planning
-- Set today's focus projects
-- Set priority levels (High/Medium/Low)
-- Track what you worked on
-
-### Agent Inventory
-- **Add Agents** - Create reusable agents with descriptions
-- **Share Agents** - Make agents available across multiple projects
-- **Agent Settings** - View stats, edit, or delete agents
-- **No Remaking** - Use the same agents everywhere!
-- **Starter Agents** - Auto-create agents when starting new projects:
-  - 🐶 Code Assistant
-  - 📚 Documentation Helper
-  - 🐛 Debug Helper
-  - 🎨 UI/UX Reviewer
-
-### 📝 Monorepo Version Control
-
-Everything in this workspace is tracked by **one Git repository** at the PersonalAI root:
-
-**What's Tracked:**
-- ✅ All projects (P1, P2, P3...)
-- ✅ All agents (`/agents/` folder)
-- ✅ Admin configuration
-- ✅ Project selector script
-
-**What's NOT Tracked:**
-- ❌ `node_modules/` (auto-generated)
-- ❌ `.env` files (secrets)
-- ❌ Daily logs (session data)
-
-**Workflow:**
+That's it! Now type `poppy` from anywhere:
+```bash
+poppy
 ```
-Make changes → 📝 Commit Changes (in Admin Console)
-                    ↓
-             Git records everything
-                    ↓
-         View history anytime (Git Status)
-```
-
-**Benefits:**
-- 📜 Complete history of all changes
-- 🔄 Roll back to any point
-- 🤝 Share entire workspace with others
-- ☁️ Push to GitHub/GitLab for backup (optional)
-- 🆓 100% FREE - no costs ever
-
-## 🔧 Quick Commands
-
-| Action | Command |
-|--------|---------|
-| Run WearWise | `cd P1 && npm start` |
-| Run Project Two | `cd P2 && npm start` |
-| Launch Admin | `cd admin && npm start` |
-| Open Selector | `.\select-project.bat` |
-| **Commit Changes** | `cd .. && git add . && git commit -m "message"` |
-| **View Git Log** | `cd .. && git log --oneline` |
-| Install P1 deps | `cd P1 && npm install` |
-| Install P2 deps | `cd P2 && npm install` |
-| Install Admin deps | `cd admin && npm install` |
-
-## 🎮 Admin Console Menu
-
-When you launch the admin console, you'll see:
-
-```
-⚡ Quick Actions
-  🚀 Start New Project        ← Creates P3, P4, etc.
-  ⚡ Quick Agent Mode         ← Batch create agents
-
-📋 Daily Planning
-  📅 Set Today's Focus
-  📊 View Today's Log
-
-🗂️  Projects
-  📁 Manage Projects
-  🚀 Quick Launch Project
-
-🤖 Agent Inventory
-  📦 View All Agents          ← Shows /agents/ folder
-  ➕ Add New Agent           ← Saves to /agents/
-  🔄 Share Agent
-  ⚙️  Agent Settings
-
-📝 Monorepo                  ← NEW!
-  📝 Commit Changes         ← Records all changes
-  📊 View Git Status        ← See what's changed
-
-⚡ System
-  🔧 System Settings
-  🚪 Exit (asks to commit)
-```
-
-## 📝 Notes
-
-- **P1 (WearWise)**: Mobile app - requires Expo Go app on phone
-- **P2**: Server - runs locally on your machine
-- **Admin**: CLI tool - runs in terminal with beautiful green UI
-- All projects are independent but can share agents via the Admin Console
-- Use `select-project.bat` anytime to switch between them!
-
-## 🎨 Admin Console Theme
-
-The admin console uses a beautiful green color scheme:
-- Primary: `#22c55e` (bright green)
-- Secondary: `#16a34a` (forest green)
-- Accent: `#4ade80` (light green)
-- Dark: `#14532d` (dark green)
 
 ---
-*Managed by Code-Puppy 🐕*
+
+## ✨ What Makes POPPY Special
+
+### 🎯 Universal Engine Support
+Launch any AI engine with the same workflow:
+- 🤖 **Code Puppy** - Your personal AI assistant
+- 🔷 **Codex** (OpenAI)
+- 🟣 **Claude Code** (Anthropic)
+- 🟢 **Cursor**
+
+### 📁 Project Management
+- Create projects with templates (React, Node, Python, etc.)
+- Import projects from GitHub, GitLab, ZIP files
+- Switch between projects instantly
+- Each project gets its own agents and context
+
+### 🤖 Agent System
+- Create specialized agents for different tasks
+- Attach skills to agents
+- Share agents between projects
+- Marketplace to download community agents
+
+### 🎯 Skills Library
+Skills are reusable abilities agents can learn:
+- `react-patterns` - React best practices
+- `api-design` - RESTful API design
+- `testing-strategies` - Testing patterns
+- `security-essentials` - Security practices
+- Create your own skills and share them
+
+### 📥 Project Import
+Import from anywhere:
+- GitHub/GitLab repositories
+- Local directories
+- ZIP archives
+- Other POPPY workspaces
+
+---
+
+## 📂 Menu Structure (Clean & Collapsible)
+
+```
+POPPY Main Menu (8 options - no scrolling!)
+│
+├── ▶ Launch AI Engine
+│   ├── 🐶 Code Puppy
+│   ├── 🔷 Codex (if installed)
+│   ├── 🟣 Claude Code (if installed)
+│   └── 🟢 Cursor (if installed)
+│
+├── ➕ New Project
+│
+├── 📁 Projects
+│   ├── ➕ Create New Project
+│   ├── 📥 Import Project ← NEW!
+│   ├── 📁 Manage Projects
+│   └── 🚀 Quick Launch
+│
+├── 🤖 Agents
+│   ├── 🤖 My Agents
+│   └── ➕ Create Agent
+│
+├── 🎯 Skills ← NEW!
+│   ├── 🎯 My Skills
+│   ├── ➕ Create Skill
+│   ├── 📚 Browse Library
+│   ├── ⬇️  Install Skill
+│   └── 🔗 Attach to Agent
+│
+├── 🔐 API Keys
+│
+├── 🔀 Git
+│
+├── ⚙️  System
+│   ├── ⚙️  Settings
+│   ├── 📅 Daily Focus
+│   ├── 📋 View Log
+│   └── 🤖 Agent Settings
+│
+└── ✕ Exit
+```
+
+---
+
+## 🎯 Working with Skills
+
+Skills are reusable "abilities" that agents can learn.
+
+### Create a Skill
+```bash
+poppy
+→ Skills
+→ Create Skill
+→ Name: react-patterns
+→ Category: Frontend
+→ Content: [editor opens for knowledge, patterns, rules]
+→ Done! Skill created
+```
+
+### Attach Skill to Agent
+```bash
+poppy
+→ Skills
+→ Attach to Agent
+→ Select skill: react-patterns
+→ Select agent: Frontend Expert
+→ Done! Agent now knows React patterns
+```
+
+### Install from Library
+```bash
+poppy
+→ Skills
+→ Install Skill
+→ Browse Library
+→ Select: api-design, testing-strategies
+→ Done! Skills installed
+```
+
+---
+
+## 📥 Importing Projects
+
+### From GitHub/GitLab/Bitbucket
+```bash
+poppy
+→ Projects
+→ Import Project
+→ GitHub / GitLab / Bitbucket
+→ Enter URL: https://github.com/user/repo
+→ Done! Project imported and tracked in POPPY
+```
+
+### From Local Directory
+```bash
+poppy
+→ Projects
+→ Import Project
+→ Local Directory
+→ Enter path: C:\Users\me\my-project
+→ Done! Project copied and added to POPPY
+```
+
+### From ZIP File
+```bash
+poppy
+→ Projects
+→ Import Project
+→ ZIP Archive
+→ Enter path: C:\Downloads\project.zip
+→ Done! Extracted and added to POPPY
+```
+
+### From Another POPPY Workspace
+```bash
+poppy
+→ Projects
+→ Import Project
+→ POPPY Workspace
+→ Enter path: C:\Users\other\PersonalAI
+→ Select project from list
+→ Done! Project + agents imported
+```
+
+---
+
+## 📁 Your Data
+
+POPPY stores your data in `~/.poppy/`:
+```
+~/.poppy/
+├── config.json           # Your settings
+├── api-keys.enc          # Encrypted API keys
+├── skills/               # Your skills
+├── agents/               # Downloaded agents
+├── projects/             # Project metadata
+└── communication/        # Agent messages
+```
+
+Projects are stored in your workspace:
+```
+PersonalAI/
+├── P1/                   # Your projects
+├── P2/
+├── P3/
+├── agents/               # Shared agents
+└── admin/                # POPPY system
+```
+
+---
+
+## 🔐 API Key Management
+
+POPPY securely manages API keys:
+```bash
+poppy
+→ API Keys
+→ Manage API Keys
+→ Add keys for OpenAI, Anthropic, etc.
+→ Keys encrypted and stored securely
+```
+
+Keys are:
+- ✅ Encrypted at rest
+- ✅ Never exposed to agents
+- ✅ Used only by POPPY to launch engines
+
+---
+
+## 🔄 Daily Workflow
+
+**Morning:**
+```bash
+poppy → System → Daily Focus
+→ Select today's projects
+→ Set focus and priority
+```
+
+**Work:**
+```bash
+poppy → Launch AI Engine → Code Puppy
+→ Work on project with agent
+```
+
+**End of Day:**
+```bash
+poppy → System → View Log
+→ Git → Commit Changes
+```
+
+---
+
+## 🌐 Supported Systems
+
+**AI Engines:**
+- ✅ Code Puppy
+- ✅ OpenAI Codex
+- ✅ Anthropic Claude Code
+- ✅ Cursor
+
+**Git Providers:**
+- ✅ GitHub
+- ✅ GitLab
+- ✅ Bitbucket
+
+**Import Sources:**
+- ✅ Git repositories
+- ✅ Local directories
+- ✅ ZIP archives
+- ✅ POPPY workspaces
+
+---
+
+## 🛠️ Installation Troubleshooting
+
+### "poppy" command not found
+```cmd
+# Re-run setup
+SETUP_POPPY.cmd
+
+# Or restart terminal
+```
+
+### Need to reset POPPY
+```bash
+# Delete config (keeps projects)
+rm ~/.poppy/config.json
+```
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+**Ready? Run `SETUP_POPPY.cmd` and type `poppy`!** 🚀
