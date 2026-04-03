@@ -1,0 +1,19 @@
+{
+  "name": "project-two",
+  "version": "1.0.0",
+  "description": "Secondary project - clean modern setup",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0"
+  },
+  "private": true
+}

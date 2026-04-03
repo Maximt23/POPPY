@@ -1,0 +1,42 @@
+# Code-Puppy Workspace Monorepo
+
+# Dependencies
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+.expo/
+web-build/
+*.tgz
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Admin data (session/temp - not versioned)
+admin/data/daily-log.json
+admin/data/git-config.json
+admin/data/git-temp/
+
+# Keep these tracked:
+# - agents/ (shared agent configs)
+# - projects/
+# - admin/data/agents.json (legacy - keeping for compat)
