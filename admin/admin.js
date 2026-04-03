@@ -1857,6 +1857,46 @@ async function main() {
       case 'agent-settings':
         await agentSettings();
         break;
+      
+      // Launch handlers
+      case 'launch-code-puppy':
+        await launchCodePuppy();
+        break;
+      case 'launch-codex':
+        await launchCodex();
+        break;
+      case 'launch-claude':
+        await launchClaude();
+        break;
+      case 'launch-cursor':
+        await launchCursor();
+        break;
+      case 'launch-with-agent':
+        await launchWithAgent();
+        break;
+      
+      // Skill handlers
+      case 'list-skills':
+        await listSkills();
+        break;
+      case 'create-skill':
+        await createSkill();
+        break;
+      case 'browse-skills':
+        await browseSkills();
+        break;
+      case 'install-skill':
+        await installSkill();
+        break;
+      case 'attach-skill':
+        await attachSkillToAgent();
+        break;
+      
+      // Import handler
+      case 'import-project':
+        await importProject();
+        break;
+      
       case 'settings':
         await systemSettings();
         break;
