@@ -7,11 +7,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 
-// Import configuration system
+// Import POPPY systems
 import { loadConfig, saveConfig, ENGINES, setupEngine, setApiKey } from './lib/config.js';
+import { EngineManager } from './lib/engine-manager.js';
+import { AgentRegistry } from './lib/marketplace.js';
+import { ApiKeyManager } from './lib/api-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize POPPY systems
+const engineManager = new EngineManager();
+const agentRegistry = new AgentRegistry();
+const apiKeyManager = new ApiKeyManager();
+await apiKeyManager.init();
 
 // Detect if running locally or globally
 const isGlobalInstall = !__dirname.includes('PersonalAI');
@@ -444,12 +453,22 @@ async function saveProjects(projects) {
 
 async function mainMenu() {
   showHeader();
+  
+  // Show detected engines
+  await engineManager.showStatus();
 
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
     message: theme.primary('Select an option:'),
     choices: [
+      new inquirer.Separator(theme.dim('--- Launch AI Engine ---')),
+      { name: theme.accent('Launch with Agent'), value: 'launch-with-agent' },
+      { name: theme.accent('Launch Codex'), value: 'launch-codex' },
+      { name: theme.accent('Launch Claude'), value: 'launch-claude' },
+      { name: theme.accent('Launch Cursor'), value: 'launch-cursor' },
+      { name: theme.info('Check Engine Status'), value: 'engine-status' },
+      
       new inquirer.Separator(theme.dim('--- Quick Actions ---')),
       { name: theme.accent('Start New Project'), value: 'new-project' },
       { name: theme.primary('Quick Agent Mode'), value: 'quick-agent-mode' },
@@ -466,7 +485,11 @@ async function mainMenu() {
       { name: theme.primary('Browse Marketplace'), value: 'marketplace' },
       { name: theme.primary('Install Agent'), value: 'install-agent' },
       { name: theme.primary('Publish My Agent'), value: 'publish-agent' },
-      { name: theme.primary('Manage API Keys'), value: 'api-keys' },
+      
+      new inquirer.Separator(theme.dim('--- API Management ---')),
+      { name: theme.info('Manage API Keys'), value: 'api-keys' },
+      { name: theme.info('Test API Keys'), value: 'test-api' },
+      { name: theme.info('Select AI Model'), value: 'select-model' },
       
       new inquirer.Separator(theme.dim('--- Local Agents ---')),
       { name: theme.accent('My Agents'), value: 'list-agents' },
@@ -480,7 +503,7 @@ async function mainMenu() {
       { name: theme.warning('Settings'), value: 'settings' },
       { name: theme.error('Exit'), value: 'exit' }
     ],
-    pageSize: 20
+    pageSize: 25
   }]);
 
   return action;
