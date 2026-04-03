@@ -357,22 +357,6 @@ async function ensureDataDir() {
   } catch (e) {}
 }
 
-async function loadAgents() {
-  try {
-    const data = await fs.readFile(AGENTS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return {
-      agents: [],
-      lastUpdated: new Date().toISOString()
-    };
-  }
-}
-
-async function saveAgents(agents) {
-  await fs.writeFile(AGENTS_FILE, JSON.stringify(agents, null, 2));
-}
-
 async function loadDailyLog() {
   try {
     const data = await fs.readFile(DAILY_LOG_FILE, 'utf8');
