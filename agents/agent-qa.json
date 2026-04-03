@@ -1,0 +1,14 @@
+{
+  "id": "agent-qa",
+  "name": "QA Agent",
+  "description": "Ensures quality, reliability, and adherence to acceptance criteria through testing strategies and automated test suites",
+  "projects": ["all"],
+  "shared": true,
+  "settings": {
+    "expertise": "quality-assurance",
+    "type": "specialist"
+  },
+  "createdAt": "2025-01-15T10:00:00Z",
+  "lastUsed": null,
+  "usageCount": 0
+}

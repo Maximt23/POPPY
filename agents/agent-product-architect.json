@@ -1,0 +1,14 @@
+{
+  "id": "agent-product-architect",
+  "name": "Product Architect",
+  "description": "Defines, designs, and ensures architectural integrity of white-label products and shared core components with enterprise-grade standards",
+  "projects": ["all"],
+  "shared": true,
+  "settings": {
+    "expertise": "architecture",
+    "type": "specialist"
+  },
+  "createdAt": "2025-01-15T10:00:00Z",
+  "lastUsed": null,
+  "usageCount": 0
+}

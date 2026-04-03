@@ -1,0 +1,15 @@
+{
+  "id": "agent-project-alpha",
+  "name": "Project Alpha Agent",
+  "description": "Owns Project Alpha exclusively, works within project boundaries, leverages project-specific memory for efficient feature building",
+  "projects": ["project-alpha"],
+  "shared": false,
+  "settings": {
+    "expertise": "project-specific",
+    "type": "project",
+    "projectId": "project-alpha"
+  },
+  "createdAt": "2025-01-15T10:00:00Z",
+  "lastUsed": null,
+  "usageCount": 0
+}

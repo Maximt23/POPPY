@@ -1,7 +1,7 @@
 {
   "name": "poppy-admin",
   "version": "1.0.0",
-  "description": "🐶 Code-Puppy Admin CLI - Project & Agent Management with Git Integration",
+  "description": "POPPY Admin CLI - Project & Agent Management with Git Integration",
   "main": "admin.js",
   "type": "module",
   "scripts": {
@@ -9,10 +9,10 @@
     "admin": "node admin.js"
   },
   "dependencies": {
+    "boxen": "^8.0.1",
     "chalk": "^5.3.0",
     "inquirer": "^9.2.0",
-    "boxen": "^7.1.0",
-    "ora": "^7.0.0",
+    "ora": "^9.3.0",
     "simple-git": "^3.22.0"
   }
 }

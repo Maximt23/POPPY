@@ -1,0 +1,14 @@
+{
+  "id": "agent-foreman",
+  "name": "Foreman",
+  "description": "Coordinates the entire Personal AI Startup Factory, routes tasks, enforces project isolation, orchestrates specialist agents, and maintains architectural discipline",
+  "projects": ["all"],
+  "shared": true,
+  "settings": {
+    "expertise": "coordination",
+    "type": "orchestrator"
+  },
+  "createdAt": "2025-01-15T10:00:00Z",
+  "lastUsed": null,
+  "usageCount": 0
+}

@@ -1,0 +1,14 @@
+{
+  "id": "agent-refactorer",
+  "name": "Refactorer",
+  "description": "Improves internal code structure without changing external behavior, enhancing maintainability and adherence to coding standards",
+  "projects": ["all"],
+  "shared": true,
+  "settings": {
+    "expertise": "refactoring",
+    "type": "specialist"
+  },
+  "createdAt": "2025-01-15T10:00:00Z",
+  "lastUsed": null,
+  "usageCount": 0
+}

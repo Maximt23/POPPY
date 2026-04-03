@@ -9,16 +9,47 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 🎨 Green Theme Colors
+// ANSI 256-color codes for authentic green gradient
+const ansi = {
+  // Bright greens (82-86) for "Poppy" text gradient
+  g82: (text) => `\x1b[1;38;5;82m${text}\x1b[0m`,
+  g83: (text) => `\x1b[1;38;5;83m${text}\x1b[0m`,
+  g84: (text) => `\x1b[1;38;5;84m${text}\x1b[0m`,
+  g85: (text) => `\x1b[1;38;5;85m${text}\x1b[0m`,
+  g86: (text) => `\x1b[1;38;5;86m${text}\x1b[0m`,
+  
+  // Darker greens for tortoise (22, 28, 29, 34, 35, 40, 41, 42)
+  d22: (text) => `\x1b[38;5;22m${text}\x1b[0m`,
+  d28: (text) => `\x1b[38;5;28m${text}\x1b[0m`,
+  d29: (text) => `\x1b[38;5;29m${text}\x1b[0m`,
+  d34: (text) => `\x1b[38;5;34m${text}\x1b[0m`,
+  d35: (text) => `\x1b[38;5;35m${text}\x1b[0m`,
+  d40: (text) => `\x1b[38;5;40m${text}\x1b[0m`,
+  d41: (text) => `\x1b[38;5;41m${text}\x1b[0m`,
+  d42: (text) => `\x1b[38;5;42m${text}\x1b[0m`,
+  d44: (text) => `\x1b[38;5;44m${text}\x1b[0m`,
+  d45: (text) => `\x1b[38;5;45m${text}\x1b[0m`,
+  d46: (text) => `\x1b[38;5;46m${text}\x1b[0m`,
+  
+  // Accent colors
+  c48: (text) => `\x1b[38;5;48m${text}\x1b[0m`,
+  c51: (text) => `\x1b[38;5;51m${text}\x1b[0m`,
+  c87: (text) => `\x1b[38;5;87m${text}\x1b[0m`,
+  c226: (text) => `\x1b[38;5;226m${text}\x1b[0m`,
+};
+
+// 🎨 Poppy's Green Battle Theme (using chalk for compatibility)
 const theme = {
-  primary: chalk.hex('#22c55e'),      // bright green
-  secondary: chalk.hex('#16a34a'),    // darker green
-  accent: chalk.hex('#4ade80'),       // light green
-  dark: chalk.hex('#14532d'),         // dark green
-  bg: chalk.bgHex('#064e3b'),         // green background
-  warning: chalk.hex('#f59e0b'),      // amber for warnings
-  error: chalk.hex('#ef4444'),        // red for errors
-  info: chalk.hex('#3b82f6'),         // blue for info
+  primary: chalk.hex('#22c55e'),
+  secondary: chalk.hex('#16a34a'),
+  accent: chalk.hex('#4ade80'),
+  dark: chalk.hex('#14532d'),
+  bg: chalk.bgHex('#064e3b'),
+  shell: chalk.hex('#84cc16'),
+  weapon: chalk.hex('#a1a1aa'),
+  warning: chalk.hex('#f59e0b'),
+  error: chalk.hex('#ef4444'),
+  info: chalk.hex('#3b82f6'),
   white: chalk.white,
   dim: chalk.gray
 };
@@ -29,27 +60,30 @@ const log = {
   error: (text) => console.log(theme.error('✗ ') + text),
   info: (text) => console.log(theme.info('ℹ ') + text),
   warning: (text) => console.log(theme.warning('⚠ ') + text),
-  agent: (text) => console.log(theme.primary('🤖 ') + theme.accent(text)),
-  project: (text) => console.log(theme.secondary('📁 ') + text),
+  agent: (text) => console.log(theme.primary('► ') + theme.accent(text)),
+  combat: (text) => console.log(theme.shell('⚡ ') + theme.weapon(text)),
+  combat: (text) => console.log(theme.shell('💥 ') + theme.weapon(text)),
   divider: () => console.log(theme.dim('─'.repeat(60)))
 };
 
-// Header Banner
+// ═══════════════════════════════════════════════════════════
+// 🎨 POPPY LOGO
+// ═══════════════════════════════════════════════════════════
+
+// Big "POPPY" text with authentic ANSI 256-color green gradient
+const POPPY_LOGO = `
+${ansi.g82('  ██████╗ ')}${ansi.g83(' ██████╗ ')}${ansi.g84('██████╗ ')}${ansi.g85('██████╗ ')}${ansi.g86('██╗   ██╗')}
+${ansi.g82('  ██╔══██╗')}${ansi.g83('██╔═══██╗')}${ansi.g84('██╔══██╗')}${ansi.g85('██╔══██╗')}${ansi.g86('██║   ██║')}
+${ansi.g82('  ██████╔╝')}${ansi.g83('██║   ██║')}${ansi.g84('██████╔╝')}${ansi.g85('██████╔╝')}${ansi.g86('╚██████╔╝')}
+${ansi.g82('  ██╔═══╝ ')}${ansi.g83('██║   ██║')}${ansi.g84('██╔═══╝ ')}${ansi.g85('██╔═══╝ ')}${ansi.g86(' ╚═══██║')}
+${ansi.g82('  ██║     ')}${ansi.g83('╚██████╔╝')}${ansi.g84('██║     ')}${ansi.g85('██║     ')}${ansi.g86('    ██║')}
+${ansi.g82('  ╚═╝     ')}${ansi.g83(' ╚══════╝')}${ansi.g84('╚═╝     ')}${ansi.g85('╚═╝     ')}${ansi.g86('    ╚═╝')}
+`;
+
+// Header Banner - Just POPPY
 function showHeader() {
   console.clear();
-  const header = boxen(
-    theme.primary.bold('🐶 Code-Puppy Admin Console') + '\n' +
-    theme.accent('Project & Agent Management System') + '\n' +
-    theme.dim('v1.0.0 - Maxim\'s Development Workspace'),
-    {
-      padding: 1,
-      margin: 1,
-      borderStyle: 'round',
-      borderColor: '#22c55e',
-      backgroundColor: '#064e3b'
-    }
-  );
-  console.log(header);
+  console.log('\n' + POPPY_LOGO + '\n');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -204,7 +238,7 @@ build/
 
     // Initial commit
     await execAsync('git add .', { cwd: projectDir });
-    await execAsync('git commit -m "Initial commit: Project scaffold created by Code-Puppy Admin"', { cwd: projectDir });
+    await execAsync('git commit -m "Initial commit: Project scaffold created by POPPY Admin"', { cwd: projectDir });
 
     return true;
   } catch (err) {
@@ -258,22 +292,22 @@ async function pushAgentsToGit(agents, gitConfig) {
     }
 
     // Create README for agents repo
-    const readmeContent = `# 🤖 Code-Puppy Agent Inventory
+    const readmeContent = `# Agent Inventory
 
 **Exported**: ${new Date().toLocaleString()}
 **Total Agents**: ${agents.agents.length}
 
 ## Agents Overview
 
-${agents.agents.map(a => `- **${a.name}**: ${a.description} (${a.shared ? '🌐 Shared' : '🔒 Private'})`).join('\n')}
+${agents.agents.map(a => `- **${a.name}**: ${a.description} (${a.shared ? 'Shared' : 'Private'})`).join('\n')}
 
 ## Structure
 
-- \+agents.json\+ - Complete agent database
-- \+agents/\+ - Individual agent files
+- agents.json - Complete agent database
+- agents/ - Individual agent files
 
 ---
-*Managed by Code-Puppy Admin Console*
+*Managed by POPPY Admin Console*
 `;
 
     await fs.writeFile(path.join(tempDir, 'README.md'), readmeContent);
@@ -419,34 +453,33 @@ async function mainMenu() {
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
-    message: theme.primary('What would you like to do?'),
-    prefix: theme.accent('🐕'),
+    message: theme.primary('Select an option:'),
     choices: [
-      new inquirer.Separator(theme.dim('─── ⚡ Quick Actions ───')),
-      { name: theme.accent('🚀 Start New Project'), value: 'new-project' },
-      { name: theme.primary('⚡ Quick Agent Mode'), value: 'quick-agent-mode' },
+      new inquirer.Separator(theme.dim('--- Quick Actions ---')),
+      { name: theme.accent('Start New Project'), value: 'new-project' },
+      { name: theme.primary('Quick Agent Mode'), value: 'quick-agent-mode' },
       
-      new inquirer.Separator(theme.dim('─── 📋 Daily Planning ───')),
-      { name: theme.secondary('📅 Set Today\'s Focus'), value: 'daily-focus' },
-      { name: theme.secondary('📊 View Today\'s Log'), value: 'view-log' },
+      new inquirer.Separator(theme.dim('--- Daily Planning ---')),
+      { name: theme.secondary('Set Today\'s Focus'), value: 'daily-focus' },
+      { name: theme.secondary('View Today\'s Log'), value: 'view-log' },
       
-      new inquirer.Separator(theme.dim('─── 🗂️  Projects ───')),
-      { name: theme.accent('📁 Manage Projects'), value: 'projects' },
-      { name: theme.accent('🚀 Quick Launch Project'), value: 'launch' },
+      new inquirer.Separator(theme.dim('--- Projects ---')),
+      { name: theme.accent('Manage Projects'), value: 'projects' },
+      { name: theme.accent('Quick Launch Project'), value: 'launch' },
       
-      new inquirer.Separator(theme.dim('─── 🤖 Agent Inventory ───')),
-      { name: theme.primary('📦 View All Agents'), value: 'list-agents' },
-      { name: theme.primary('➕ Add New Agent'), value: 'add-agent' },
-      { name: theme.primary('🔄 Share Agent'), value: 'share-agent' },
-      { name: theme.primary('⚙️  Agent Settings'), value: 'agent-settings' },
+      new inquirer.Separator(theme.dim('--- Agent Inventory ---')),
+      { name: theme.primary('View All Agents'), value: 'list-agents' },
+      { name: theme.primary('Add New Agent'), value: 'add-agent' },
+      { name: theme.primary('Share Agent'), value: 'share-agent' },
+      { name: theme.primary('Agent Settings'), value: 'agent-settings' },
       
-      new inquirer.Separator(theme.dim('─── 📝 Monorepo ───')),
-      { name: theme.info('📝 Commit Changes'), value: 'commit-monorepo' },
-      { name: theme.info('📊 View Git Status'), value: 'git-status' },
+      new inquirer.Separator(theme.dim('--- Monorepo ---')),
+      { name: theme.info('Commit Changes'), value: 'commit-monorepo' },
+      { name: theme.info('View Git Status'), value: 'git-status' },
       
-      new inquirer.Separator(theme.dim('─── ⚡ System ───')),
-      { name: theme.warning('🔧 System Settings'), value: 'settings' },
-      { name: theme.error('🚪 Exit'), value: 'exit' }
+      new inquirer.Separator(theme.dim('--- System ---')),
+      { name: theme.warning('System Settings'), value: 'settings' },
+      { name: theme.error('Exit'), value: 'exit' }
     ],
     pageSize: 20
   }]);
@@ -843,10 +876,10 @@ async function createNewProject() {
       message: theme.accent('Which starter agents?'),
       when: (answers) => answers.addAgents,
       choices: [
-        { name: theme.primary('🐶 Code Assistant'), value: 'code-assistant', checked: true },
-        { name: theme.accent('📚 Documentation Helper'), value: 'docs-helper', checked: true },
-        { name: theme.info('🐛 Debug Helper'), value: 'debug-helper' },
-        { name: theme.secondary('🎨 UI/UX Reviewer'), value: 'ui-reviewer' }
+        { name: theme.primary('Code Assistant'), value: 'code-assistant', checked: true },
+        { name: theme.accent('Documentation Helper'), value: 'docs-helper', checked: true },
+        { name: theme.info('Debug Helper'), value: 'debug-helper' },
+        { name: theme.secondary('UI/UX Reviewer'), value: 'ui-reviewer' }
       ]
     }
   ]);
@@ -1065,7 +1098,7 @@ ${answers.description}
 🕐 Created: ${new Date().toLocaleDateString()}
 
 ---
-*Managed by Code-Puppy 🐶*
+*Managed by POPPY Admin*
 `;
   await fs.writeFile(path.join(dir, 'README.md'), readme);
 }
@@ -1606,7 +1639,45 @@ async function configureGit() {
 // 🎬 MAIN
 // ═══════════════════════════════════════════════════════════
 
+function showHelp() {
+  console.log(`
+${theme.primary.bold('POPPY Admin')}
+
+Usage: poppy [command] [options]
+
+Commands:
+  (no args)     Start interactive admin console
+  --help, -h    Show this help message
+  --version, -v Show version
+
+Interactive Console:
+  The admin console provides support for:
+  • Deploying new projects
+  • Managing agent squadrons
+  • Setting daily mission objectives
+  • Git operations
+  • Rapid project deployment
+`);
+}
+
+function showVersion() {
+  console.log('POPPY Admin v1.0.0');
+}
+
 async function main() {
+  // Parse command-line arguments
+  const args = process.argv.slice(2);
+  
+  if (args.includes('--help') || args.includes('-h')) {
+    showHelp();
+    process.exit(0);
+  }
+  
+  if (args.includes('--version') || args.includes('-v')) {
+    showVersion();
+    process.exit(0);
+  }
+
   await ensureDataDir();
 
   while (true) {
@@ -1667,15 +1738,7 @@ async function main() {
           await commitMonorepo();
         }
         
-        console.log(boxen(
-          theme.accent('🐶 Thanks for using Code-Puppy Admin!') + '\n' +
-          theme.dim('Happy coding, Maxim!'),
-          {
-            padding: 1,
-            borderStyle: 'round',
-            borderColor: '#22c55e'
-          }
-        ));
+        console.log('\n' + POPPY_LOGO + '\n');
         process.exit(0);
     }
   }

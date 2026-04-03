@@ -1,0 +1,14 @@
+{
+  "id": "agent-git-manager",
+  "name": "Git Manager",
+  "description": "Manages git discipline, maintains clean commits, protects repository hygiene, and keeps remote GitHub repo continuously updated",
+  "projects": ["all"],
+  "shared": true,
+  "settings": {
+    "expertise": "git",
+    "type": "specialist"
+  },
+  "createdAt": "2025-01-15T10:00:00Z",
+  "lastUsed": null,
+  "usageCount": 0
+}
