@@ -11,6 +11,64 @@
 
 POPPY is a universal project manager that works with **any AI coding engine**. Organize your projects, manage AI agents, track daily progress, and maintain git discipline - regardless of which AI assistant you use.
 
+## 🚀 Quick Start (Choose One)
+
+### Option 1: One-Line Install (Windows)
+Copy-paste into Command Prompt or PowerShell:
+```cmd
+powershell -Command "git clone https://github.com/Maximt23/code-puppy-POPPY.git %USERPROFILE%\poppy && setx PATH \"%PATH%;%USERPROFILE%\poppy\admin\" && %USERPROFILE%\poppy\admin\poppy.cmd"
+```
+Then restart your terminal and type: `poppy`
+
+### Option 2: NPM Install (Recommended for Developers)
+```bash
+npm install -g poppy-admin
+poppy --setup
+```
+
+### Option 3: Manual Install
+1. **Download**: `git clone https://github.com/Maximt23/code-puppy-POPPY.git`
+2. **Add to PATH**: Add the `admin` folder to your system PATH
+3. **Run**: Type `poppy` in your terminal
+
+---
+
+## 📥 Download & Installation
+
+### Windows
+
+**Quick Install (Automatic):**
+```batch
+curl -o install-poppy.bat https://raw.githubusercontent.com/Maximt23/code-puppy-POPPY/master/admin/install.cmd
+install-poppy.bat
+```
+
+**Manual Install:**
+1. Download: https://github.com/Maximt23/code-puppy-POPPY/archive/refs/heads/master.zip
+2. Extract to: `C:\Users\YourName\poppy`
+3. Add to PATH:
+   - Win + R → type `sysdm.cpl` → Enter
+   - Advanced → Environment Variables
+   - Edit PATH → Add `C:\Users\YourName\poppy\admin`
+4. Open new terminal → Type `poppy`
+
+### macOS / Linux
+
+**Quick Install:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/Maximt23/code-puppy-POPPY/master/admin/install.sh | bash
+```
+
+**Manual Install:**
+```bash
+git clone https://github.com/Maximt23/code-puppy-POPPY.git ~/poppy
+echo 'export PATH="$PATH:$HOME/poppy/admin"' >> ~/.bashrc
+source ~/.bashrc
+poppy
+```
+
+---
+
 ## 🎯 Supported AI Engines
 
 - **Code-Puppy** - Personal AI assistant with project isolation
@@ -20,73 +78,22 @@ POPPY is a universal project manager that works with **any AI coding engine**. O
 - **GitHub Copilot** - GitHub's AI pair programmer
 - **Custom** - Bring your own AI configuration
 
-## 📦 Installation
+---
 
-### Global Install (Recommended)
+## ⚙️ First-Time Setup
 
+After installation, run:
 ```bash
-npm install -g poppy-admin
+poppy --setup
 ```
 
-### Local Install
+This will:
+1. Detect or select your AI engine
+2. Configure project directories
+3. Set up agent inventory storage
+4. Configure Git integration (optional)
 
-```bash
-npm install poppy-admin
-npx poppy
-```
-
-### From Source
-
-```bash
-git clone https://github.com/Maximt23/code-puppy-POPPY.git
-cd admin
-npm install
-npm link  # Makes 'poppy' command available globally
-```
-
-## 🚀 Quick Start
-
-1. **Launch POPPY:**
-   ```bash
-   poppy
-   ```
-
-2. **Configure your AI engine:**
-   ```bash
-   poppy --setup
-   ```
-
-3. **Add your API keys:**
-   ```bash
-   poppy --config
-   ```
-
-## ⚙️ Configuration
-
-### Set Your AI Engine
-
-```bash
-poppy engine code-puppy    # For Code-Puppy
-poppy engine claude-code   # For Claude Code
-poppy engine cursor        # For Cursor
-```
-
-### Add API Keys
-
-```bash
-poppy key openai sk-...
-poppy key anthropic sk-ant-...
-poppy key gemini ...
-```
-
-### First-Time Setup
-
-When you first run `poppy`, it will:
-
-1. Create `~/.poppy/` configuration directory
-2. Set up agent inventory storage
-3. Configure default project paths
-4. Prompt for API keys (optional)
+---
 
 ## 📋 Features
 
@@ -114,6 +121,8 @@ When you first run `poppy`, it will:
 - **Review History** - See past daily logs
 - **Time Tracking** - Monitor time spent on projects
 
+---
+
 ## 🛠️ Commands
 
 ```bash
@@ -127,27 +136,33 @@ poppy status            # Show git status
 poppy commit            # Commit changes
 ```
 
-## 📁 Project Structure
+---
 
-```
-~/.poppy/
-├── config.json          # POPPY configuration
-├── agents/              # Agent inventory
-│   ├── agent-1.json
-│   └── agent-2.json
-├── logs/                # Daily work logs
-└── templates/           # Project templates
+## 🔧 Configuration
 
-~/Projects/              # Your projects (configurable)
-├── project-1/
-├── project-2/
-└── shared-agents/
+### Set Your AI Engine
+
+```bash
+poppy engine code-puppy    # For Code-Puppy
+poppy engine claude-code   # For Claude Code
+poppy engine cursor        # For Cursor
 ```
 
-## 🔧 Custom Configuration
+### Add API Keys
 
-Create `~/.poppy/config.json`:
+```bash
+poppy key openai sk-...
+poppy key anthropic sk-ant-...
+poppy key gemini ...
+```
 
+### Config File Location
+
+Config is stored at:
+- **Windows**: `%USERPROFILE%\.poppy\config.json`
+- **Mac/Linux**: `~/.poppy/config.json`
+
+Example config:
 ```json
 {
   "engine": "code-puppy",
@@ -168,6 +183,8 @@ Create `~/.poppy/config.json`:
 }
 ```
 
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -175,9 +192,13 @@ Create `~/.poppy/config.json`:
 3. Make your changes
 4. Submit a pull request
 
+---
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details
+
+---
 
 ## 🙏 Credits
 
