@@ -1,4 +1,4 @@
-# 🐶 POPPY - Universal AI Project Manager
+# 🐢 POPPY - Universal AI Project Manager
 
 **POPPY** is a universal overlay for AI coding engines (Codex, Claude Code, Cursor) that manages projects, agents, skills, and workflows across all your AI tools.
 
