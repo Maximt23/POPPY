@@ -4109,19 +4109,21 @@ async function showSystemMenu() {
   // Different menu for creator vs user
   const isCreator = isCreatorVersion();
   
+  // Build choices array dynamically
   const choices = [
-    { name: theme.info('📊 Analytics'), value: 'analytics' },
-    new inquirer.Separator(),
-    { name: theme.dim('← Back'), value: 'back' }
+    { name: theme.info('📊 Analytics'), value: 'analytics' }
   ];
   
   // Add creator-only option
   if (isCreator) {
-    choices.splice(1, 0, { 
+    choices.push({ 
       name: theme.accent('👑 Creator Dashboard'), 
       value: 'creator' 
     });
   }
+  
+  choices.push(new inquirer.Separator());
+  choices.push({ name: theme.dim('← Back'), value: 'back' });
   
   console.log('DEBUG: choices =', JSON.stringify(choices.map(c => c.value || c.constructor.name)));
   const { action } = await inquirer.prompt([{
