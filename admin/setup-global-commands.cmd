@@ -2,36 +2,57 @@
 :: Add POPPY commands to system PATH for global access
 :: Run this as Administrator
 
-echo Adding POPPY to system PATH...
+echo ==========================================
+echo   POPPY Global Setup
+echo ==========================================
+echo.
+echo This will add POPPY to your system PATH.
+echo Run this as Administrator for it to work.
+echo.
 
 set "POPPY_PATH=C:\Users\maxim\PersonalAI\admin"
 
-:: Get current system PATH
-for /f "tokens=2*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul ^| findstr /i "Path"') do set "SYSPATH=%%b"
+:: Get current user PATH
+for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v Path 2^>nul ^| findstr /i "Path"') do set "USERPATH=%%b"
+
+:: If no user PATH exists, use system PATH
+if not defined USERPATH (
+    for /f "tokens=2*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul ^| findstr /i "Path"') do set "USERPATH=%%b"
+)
 
 :: Check if already in PATH
-echo %SYSPATH% | find /i "%POPPY_PATH%" >nul
+echo %USERPATH% | find /i "%POPPY_PATH%" >nul
 if %errorlevel% == 0 (
-    echo POPPY is already in PATH
-    goto :done
+    echo ✅ POPPY is already in your PATH
+    echo.
+    echo You can now use:
+    echo   poppy       - from any folder
+    echo   poppy-maxim - from any folder
+    echo.
+    pause
+    exit /b 0
 )
 
-:: Add to system PATH
-setx /M PATH "%SYSPATH%;%POPPY_PATH%" >nul 2>&1
+:: Add to user PATH (doesn't require admin)
+setx PATH "%USERPATH%;%POPPY_PATH%" >nul 2>&1
 if %errorlevel% == 0 (
-    echo ✅ POPPY added to system PATH successfully!
+    echo ✅ POPPY added to PATH successfully!
     echo.
-    echo You can now use these commands from anywhere:
-    echo   poppy       - Production version (no Creator Dashboard)
-    echo   poppy-maxim - Creator version (with Creator Dashboard)
+    echo Commands available:
+    echo   poppy       - Production version
+    echo   poppy-maxim - Creator version (with dashboard)
     echo.
-    echo NOTE: You may need to restart your terminal for changes to take effect.
+    echo ⚠️  IMPORTANT: Restart your terminal for changes to take effect!
+    echo.
 ) else (
-    echo ❌ Failed to add to PATH. Make sure you ran this as Administrator.
+    echo ❌ Failed to add to PATH automatically.
     echo.
-    echo Alternative: Add this path manually to your PATH:
-    echo   %POPPY_PATH%
+    echo Manual setup:
+    echo 1. Open System Properties -^> Advanced -^> Environment Variables
+    echo 2. Edit your PATH variable
+    echo 3. Add this folder:
+    echo    %POPPY_PATH%
+    echo.
 )
 
-:done
 pause
