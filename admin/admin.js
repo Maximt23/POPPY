@@ -2,55 +2,82 @@
 
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import boxen from 'boxen';
 import fs from 'fs/promises';
-import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Paths
 const ROOT_DIR = path.dirname(__dirname);
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ SECURITY MODULE
+// ═══════════════════════════════════════════════════════════
+
+// Rate limiter - prevent rapid-fire operations
+class RateLimiter {
+  constructor() {
+    this.cooldowns = new Map();
+    this.COOLDOWN_MS = 1000; // 1 second between operations
+  }
+
+  check(operation) {
+    const now = Date.now();
+    const last = this.cooldowns.get(operation);
+    if (last && (now - last) < this.COOLDOWN_MS) {
+      const wait = Math.ceil((this.COOLDOWN_MS - (now - last)) / 1000);
+      return { allowed: false, wait };
+    }
+    this.cooldowns.set(operation, now);
+    return { allowed: true };
+  }
+}
+const rateLimiter = new RateLimiter();
+
+// Input sanitization - prevent injection attacks
+function sanitize(input, type = 'string') {
+  if (!input || typeof input !== 'string') return '';
+  
+  // Remove null bytes and control chars
+  let clean = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  
+  switch (type) {
+    case 'name':
+      clean = clean.replace(/[^a-zA-Z0-9_\-\s]/g, '').slice(0, 50);
+      break;
+    case 'filename':
+      // Prevent path traversal
+      clean = clean.replace(/[\\/:*?"<>|]/g, '')
+                   .replace(/\.\./g, '')
+                   .slice(0, 50);
+      break;
+    case 'description':
+      clean = clean.replace(/[<>\"']/g, '').slice(0, 500);
+      break;
+  }
+  return clean.trim();
+}
+
+// Validate file path doesn't escape allowed directory
+function validatePath(basePath, userPath) {
+  const resolved = path.resolve(baseDir, userPath);
+  const relative = path.relative(baseDir, resolved);
+  if (relative.startsWith('..') || relative.startsWith('.')) {
+    throw new Error('Invalid path: Directory traversal detected');
+  }
+  return resolved;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════════════════════
+
 const DATA_DIR = path.join(__dirname, 'data');
 const AGENTS_DIR = path.join(ROOT_DIR, 'agents');
 const SKILLS_DIR = path.join(DATA_DIR, 'skills');
 const PROMPTS_DIR = path.join(DATA_DIR, 'prompts');
 
-// Theme
-const theme = {
-  primary: chalk.hex('#22c55e'),
-  secondary: chalk.hex('#16a34a'),
-  accent: chalk.hex('#4ade80'),
-  error: chalk.hex('#ef4444'),
-  warning: chalk.hex('#f59e0b'),
-  info: chalk.hex('#3b82f6'),
-  dim: chalk.gray
-};
-
-const log = {
-  success: (text) => console.log(theme.accent('✓ ') + text),
-  error: (text) => console.log(theme.error('✗ ') + text),
-  warning: (text) => console.log(theme.warning('⚠ ') + text),
-  info: (text) => console.log(theme.info('ℹ ') + text),
-  divider: () => console.log(theme.dim('─'.repeat(60)))
-};
-
-function showHeader() {
-  console.clear();
-  console.log('\n' + theme.primary.bold('🐶 POPPY\n'));
-}
-
-async function pause() {
-  await inquirer.prompt([{ type: 'input', name: 'continue', message: theme.dim('Press Enter...') }]);
-}
-
-// ═══════════════════════════════════════════════════════════
-// DATA LOADING & SAVING
-// ═══════════════════════════════════════════════════════════
-
+// Load/save agents
 async function loadAgents() {
   const agents = [];
   try {
@@ -69,11 +96,12 @@ async function loadAgents() {
 }
 
 async function saveAgent(agent) {
-  const safeName = agent.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const safeName = sanitize(agent.name, 'filename');
   const filename = `${safeName}-${agent.id.slice(-6)}.json`;
   await fs.writeFile(path.join(AGENTS_DIR, filename), JSON.stringify(agent, null, 2));
 }
 
+// Load/save skills
 async function loadSkills() {
   const skills = [];
   try {
@@ -90,11 +118,12 @@ async function loadSkills() {
 }
 
 async function saveSkill(skill) {
-  const safeName = skill.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const safeName = sanitize(skill.name, 'filename');
   const filename = `${safeName}-${skill.id.slice(-6)}.json`;
   await fs.writeFile(path.join(SKILLS_DIR, filename), JSON.stringify(skill, null, 2));
 }
 
+// Load/save prompts
 async function loadPrompts() {
   const prompts = [];
   try {
@@ -111,113 +140,117 @@ async function loadPrompts() {
 }
 
 async function savePrompt(prompt) {
-  const safeName = prompt.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const safeName = sanitize(prompt.name, 'filename');
   const filename = `${safeName}-${prompt.id.slice(-6)}.json`;
   await fs.writeFile(path.join(PROMPTS_DIR, filename), JSON.stringify(prompt, null, 2));
 }
 
 // ═══════════════════════════════════════════════════════════
-// AGENTS
+// UI THEME
 // ═══════════════════════════════════════════════════════════
 
-async function listAgents() {
-  showHeader();
-  console.log(theme.primary.bold('🤖 My Agents\n'));
-  
-  const agents = await loadAgents();
-  
-  if (agents.length === 0) {
-    log.warning('No agents yet. Create one first!');
-  } else {
-    agents.forEach((agent, i) => {
-      const skills = agent.skills?.length || 0;
-      const prompts = agent.prompts?.length || 0;
-      console.log(`${i + 1}. ${theme.accent(agent.name)} ${theme.dim(`[${skills} skills, ${prompts} prompts]`)}`);
-      console.log(`   ${theme.dim(agent.description || 'No description')}`);
-      console.log(`   ${theme.dim(`ID: ${agent.id}`)}\n`);
-    });
-  }
-  
-  log.divider();
-  await pause();
+const theme = {
+  primary: chalk.hex('#22c55e').bold,
+  accent: chalk.hex('#4ade80'),
+  error: chalk.hex('#ef4444'),
+  warning: chalk.hex('#f59e0b'),
+  info: chalk.hex('#3b82f6'),
+  dim: chalk.gray
+};
+
+const log = {
+  success: (t) => console.log(theme.accent('✓ ') + t),
+  error: (t) => console.log(theme.error('✗ ') + t),
+  warning: (t) => console.log(theme.warning('⚠ ') + t),
+  info: (t) => console.log(theme.info('ℹ ') + t)
+};
+
+function header() {
+  console.clear();
+  console.log('\n' + theme.primary('🐶 POPPY\n'));
 }
 
+async function pause() {
+  await inquirer.prompt([{ type: 'input', name: 'c', message: theme.dim('Press Enter...') }]);
+}
+
+// ═══════════════════════════════════════════════════════════
+// CORE FUNCTIONS
+// ═══════════════════════════════════════════════════════════
+
 async function createAgent() {
-  showHeader();
-  console.log(theme.primary.bold('➕ Create New Agent\n'));
+  header();
   
-  const answers = await inquirer.prompt([
+  // Rate limiting
+  const rate = rateLimiter.check('createAgent');
+  if (!rate.allowed) {
+    log.warning(`Rate limited: Wait ${rate.wait}s`);
+    await pause();
+    return;
+  }
+  
+  const ans = await inquirer.prompt([
     {
       type: 'input',
       name: 'name',
       message: theme.accent('Agent name:'),
-      validate: (input) => input.trim().length > 0 || 'Name required'
+      validate: (i) => sanitize(i, 'name').length > 0 || 'Name required (alphanumeric only)'
     },
-    {
-      type: 'input',
-      name: 'description',
-      message: theme.accent('Description:'),
-      default: 'A helpful agent'
-    },
+    { type: 'input', name: 'desc', message: theme.accent('Description:'), default: 'A helpful agent' },
     {
       type: 'list',
       name: 'role',
       message: theme.accent('Role:'),
-      choices: ['Frontend Developer', 'Backend Developer', 'DevOps Engineer', 'QA Engineer', 'Product Manager', 'Other']
+      choices: ['Frontend Dev', 'Backend Dev', 'DevOps', 'QA', 'Product Manager', 'Other']
     }
   ]);
   
   const agent = {
     id: `agent-${Date.now()}`,
-    name: answers.name.trim(),
-    description: answers.description.trim(),
-    role: answers.role,
+    name: sanitize(ans.name, 'name'),
+    description: sanitize(ans.desc, 'description'),
+    role: ans.role,
     skills: [],
     prompts: [],
     createdAt: new Date().toISOString()
   };
   
   await saveAgent(agent);
-  
-  log.success(`Created agent: ${agent.name}`);
-  log.info(`ID: ${agent.id}`);
+  log.success(`Created: ${agent.name}`);
   await pause();
 }
 
-// ═══════════════════════════════════════════════════════════
-// SKILLS
-// ═══════════════════════════════════════════════════════════
-
-async function listSkills() {
-  showHeader();
-  console.log(theme.primary.bold('🎯 My Skills\n'));
+async function listAgents() {
+  header();
+  const agents = await loadAgents();
   
-  const skills = await loadSkills();
-  
-  if (skills.length === 0) {
-    log.warning('No skills yet. Create one first!');
+  if (agents.length === 0) {
+    log.warning('No agents. Create one first!');
   } else {
-    skills.forEach((skill, i) => {
-      console.log(`${i + 1}. ${theme.accent(skill.name)} ${theme.dim(`(${skill.category})`)}`);
-      console.log(`   ${theme.dim(skill.description || 'No description')}`);
-      console.log(`   ${theme.dim(`ID: ${skill.id}`)}\n`);
+    agents.forEach((a, i) => {
+      console.log(`${i + 1}. ${theme.accent(a.name)} [${a.skills.length} skills, ${a.prompts.length} prompts]`);
+      console.log(`   ${theme.dim(a.description)}\n`);
     });
   }
-  
-  log.divider();
   await pause();
 }
 
 async function createSkill() {
-  showHeader();
-  console.log(theme.primary.bold('➕ Create New Skill\n'));
+  header();
   
-  const answers = await inquirer.prompt([
+  const rate = rateLimiter.check('createSkill');
+  if (!rate.allowed) {
+    log.warning(`Rate limited: Wait ${rate.wait}s`);
+    await pause();
+    return;
+  }
+  
+  const ans = await inquirer.prompt([
     {
       type: 'input',
       name: 'name',
       message: theme.accent('Skill name:'),
-      validate: (input) => input.trim().length > 0 || 'Name required'
+      validate: (i) => sanitize(i, 'name').length > 0 || 'Name required'
     },
     {
       type: 'list',
@@ -225,110 +258,98 @@ async function createSkill() {
       message: theme.accent('Category:'),
       choices: ['Frontend', 'Backend', 'Mobile', 'DevOps', 'Testing', 'Security', 'Other']
     },
-    {
-      type: 'input',
-      name: 'description',
-      message: theme.accent('Description:')
-    }
+    { type: 'input', name: 'desc', message: theme.accent('Description:') }
   ]);
   
   const skill = {
     id: `skill-${Date.now()}`,
-    name: answers.name.trim(),
-    category: answers.category.toLowerCase(),
-    description: answers.description.trim(),
+    name: sanitize(ans.name, 'name'),
+    category: ans.category.toLowerCase(),
+    description: sanitize(ans.desc, 'description'),
     createdAt: new Date().toISOString()
   };
   
   await saveSkill(skill);
-  
-  log.success(`Created skill: ${skill.name}`);
-  log.info(`ID: ${skill.id}`);
+  log.success(`Created: ${skill.name}`);
   await pause();
 }
 
-// ═══════════════════════════════════════════════════════════
-// PROMPTS
-// ═══════════════════════════════════════════════════════════
-
-async function listPrompts() {
-  showHeader();
-  console.log(theme.primary.bold('💬 My Prompts\n'));
+async function listSkills() {
+  header();
+  const skills = await loadSkills();
   
-  const prompts = await loadPrompts();
-  
-  if (prompts.length === 0) {
-    log.warning('No prompts yet. Create one first!');
+  if (skills.length === 0) {
+    log.warning('No skills. Create one first!');
   } else {
-    prompts.forEach((prompt, i) => {
-      console.log(`${i + 1}. ${theme.accent(prompt.name)} ${theme.dim(`(${prompt.category})`)}`);
-      console.log(`   ${theme.dim(prompt.description || 'No description')}`);
-      console.log(`   ${theme.dim(`ID: ${prompt.id}`)}\n`);
+    skills.forEach((s, i) => {
+      console.log(`${i + 1}. ${theme.accent(s.name)} (${s.category})`);
+      console.log(`   ${theme.dim(s.description)}\n`);
     });
   }
-  
-  log.divider();
   await pause();
 }
 
 async function createPrompt() {
-  showHeader();
-  console.log(theme.primary.bold('➕ Create New Prompt\n'));
+  header();
   
-  const answers = await inquirer.prompt([
+  const rate = rateLimiter.check('createPrompt');
+  if (!rate.allowed) {
+    log.warning(`Rate limited: Wait ${rate.wait}s`);
+    await pause();
+    return;
+  }
+  
+  const ans = await inquirer.prompt([
     {
       type: 'input',
       name: 'name',
       message: theme.accent('Prompt name:'),
-      validate: (input) => input.trim().length > 0 || 'Name required'
+      validate: (i) => sanitize(i, 'name').length > 0 || 'Name required'
     },
     {
       type: 'list',
       name: 'category',
       message: theme.accent('Category:'),
-      choices: ['System Prompt', 'User Prompt', 'Template', 'Other']
+      choices: ['System', 'User', 'Template', 'Other']
     },
-    {
-      type: 'input',
-      name: 'description',
-      message: theme.accent('Description:')
-    }
+    { type: 'input', name: 'desc', message: theme.accent('Description:') }
   ]);
   
   const prompt = {
     id: `prompt-${Date.now()}`,
-    name: answers.name.trim(),
-    category: answers.category.toLowerCase(),
-    description: answers.description.trim(),
+    name: sanitize(ans.name, 'name'),
+    category: ans.category.toLowerCase(),
+    description: sanitize(ans.desc, 'description'),
     createdAt: new Date().toISOString()
   };
   
   await savePrompt(prompt);
-  
-  log.success(`Created prompt: ${prompt.name}`);
-  log.info(`ID: ${prompt.id}`);
+  log.success(`Created: ${prompt.name}`);
   await pause();
 }
 
-// ═══════════════════════════════════════════════════════════
-// ATTACHMENTS
-// ═══════════════════════════════════════════════════════════
-
-async function attachSkillToAgent() {
-  showHeader();
-  console.log(theme.primary.bold('🔗 Attach Skill to Agent\n'));
+async function listPrompts() {
+  header();
+  const prompts = await loadPrompts();
   
+  if (prompts.length === 0) {
+    log.warning('No prompts. Create one first!');
+  } else {
+    prompts.forEach((p, i) => {
+      console.log(`${i + 1}. ${theme.accent(p.name)} (${p.category})`);
+      console.log(`   ${theme.dim(p.description)}\n`);
+    });
+  }
+  await pause();
+}
+
+async function attachSkill() {
+  header();
   const agents = await loadAgents();
   const skills = await loadSkills();
   
-  if (agents.length === 0) {
-    log.warning('No agents. Create one first!');
-    await pause();
-    return;
-  }
-  
-  if (skills.length === 0) {
-    log.warning('No skills. Create one first!');
+  if (agents.length === 0 || skills.length === 0) {
+    log.warning('Need both agents and skills!');
     await pause();
     return;
   }
@@ -343,44 +364,29 @@ async function attachSkillToAgent() {
   const { skillIds } = await inquirer.prompt([{
     type: 'checkbox',
     name: 'skillIds',
-    message: theme.accent('Select skills to attach:'),
+    message: theme.accent('Select skills:'),
     choices: skills.map(s => ({ name: `${s.name} (${s.category})`, value: s.id }))
   }]);
   
-  if (skillIds.length === 0) {
-    log.warning('No skills selected');
-    await pause();
-    return;
-  }
+  if (skillIds.length === 0) return;
   
   const agent = agents.find(a => a.id === agentId);
-  for (const skillId of skillIds) {
-    if (!agent.skills.includes(skillId)) {
-      agent.skills.push(skillId);
-    }
+  for (const sid of skillIds) {
+    if (!agent.skills.includes(sid)) agent.skills.push(sid);
   }
   
   await saveAgent(agent);
-  
   log.success(`Attached ${skillIds.length} skill(s) to ${agent.name}`);
   await pause();
 }
 
-async function attachPromptToAgent() {
-  showHeader();
-  console.log(theme.primary.bold('🔗 Attach Prompt to Agent\n'));
-  
+async function attachPrompt() {
+  header();
   const agents = await loadAgents();
   const prompts = await loadPrompts();
   
-  if (agents.length === 0) {
-    log.warning('No agents. Create one first!');
-    await pause();
-    return;
-  }
-  
-  if (prompts.length === 0) {
-    log.warning('No prompts. Create one first!');
+  if (agents.length === 0 || prompts.length === 0) {
+    log.warning('Need both agents and prompts!');
     await pause();
     return;
   }
@@ -395,25 +401,18 @@ async function attachPromptToAgent() {
   const { promptIds } = await inquirer.prompt([{
     type: 'checkbox',
     name: 'promptIds',
-    message: theme.accent('Select prompts to attach:'),
+    message: theme.accent('Select prompts:'),
     choices: prompts.map(p => ({ name: `${p.name} (${p.category})`, value: p.id }))
   }]);
   
-  if (promptIds.length === 0) {
-    log.warning('No prompts selected');
-    await pause();
-    return;
-  }
+  if (promptIds.length === 0) return;
   
   const agent = agents.find(a => a.id === agentId);
-  for (const promptId of promptIds) {
-    if (!agent.prompts.includes(promptId)) {
-      agent.prompts.push(promptId);
-    }
+  for (const pid of promptIds) {
+    if (!agent.prompts.includes(pid)) agent.prompts.push(pid);
   }
   
   await saveAgent(agent);
-  
   log.success(`Attached ${promptIds.length} prompt(s) to ${agent.name}`);
   await pause();
 }
@@ -422,16 +421,15 @@ async function attachPromptToAgent() {
 // MENUS
 // ═══════════════════════════════════════════════════════════
 
-async function showAgentsMenu() {
-  showHeader();
-  
+async function agentMenu() {
+  header();
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
     message: theme.primary('🤖 Agents:'),
     choices: [
-      { name: '➕ Create Agent', value: 'create' },
-      { name: '📁 My Agents', value: 'list' },
+      { name: '➕ Create', value: 'create' },
+      { name: '📁 List', value: 'list' },
       { name: '← Back', value: 'back' }
     ]
   }]);
@@ -439,20 +437,18 @@ async function showAgentsMenu() {
   if (action === 'create') await createAgent();
   else if (action === 'list') await listAgents();
   
-  if (action !== 'back') return await showAgentsMenu();
-  return 'back';
+  return action === 'back' ? 'back' : await agentMenu();
 }
 
-async function showSkillsMenu() {
-  showHeader();
-  
+async function skillMenu() {
+  header();
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
     message: theme.primary('🎯 Skills:'),
     choices: [
-      { name: '➕ Create Skill', value: 'create' },
-      { name: '📁 My Skills', value: 'list' },
+      { name: '➕ Create', value: 'create' },
+      { name: '📁 List', value: 'list' },
       { name: '🔗 Attach to Agent', value: 'attach' },
       { name: '← Back', value: 'back' }
     ]
@@ -460,22 +456,20 @@ async function showSkillsMenu() {
   
   if (action === 'create') await createSkill();
   else if (action === 'list') await listSkills();
-  else if (action === 'attach') await attachSkillToAgent();
+  else if (action === 'attach') await attachSkill();
   
-  if (action !== 'back') return await showSkillsMenu();
-  return 'back';
+  return action === 'back' ? 'back' : await skillMenu();
 }
 
-async function showPromptsMenu() {
-  showHeader();
-  
+async function promptMenu() {
+  header();
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
     message: theme.primary('💬 Prompts:'),
     choices: [
-      { name: '➕ Create Prompt', value: 'create' },
-      { name: '📁 My Prompts', value: 'list' },
+      { name: '➕ Create', value: 'create' },
+      { name: '📁 List', value: 'list' },
       { name: '🔗 Attach to Agent', value: 'attach' },
       { name: '← Back', value: 'back' }
     ]
@@ -483,48 +477,45 @@ async function showPromptsMenu() {
   
   if (action === 'create') await createPrompt();
   else if (action === 'list') await listPrompts();
-  else if (action === 'attach') await attachPromptToAgent();
+  else if (action === 'attach') await attachPrompt();
   
-  if (action !== 'back') return await showPromptsMenu();
-  return 'back';
+  return action === 'back' ? 'back' : await promptMenu();
 }
 
 async function mainMenu() {
-  showHeader();
+  header();
   
-  const { category } = await inquirer.prompt([{
+  const { choice } = await inquirer.prompt([{
     type: 'list',
-    name: 'category',
+    name: 'choice',
     message: theme.primary('Main Menu:'),
     choices: [
       { name: '🤖 Agents', value: 'agents' },
       { name: '🎯 Skills', value: 'skills' },
       { name: '💬 Prompts', value: 'prompts' },
-      { name: theme.error('✕ Exit'), value: 'exit' }
+      { name: chalk.red('✕ Exit'), value: 'exit' }
     ]
   }]);
   
-  if (category === 'exit') return 'exit';
+  if (choice === 'exit') return 'exit';
   
-  let action;
-  switch (category) {
-    case 'agents': action = await showAgentsMenu(); break;
-    case 'skills': action = await showSkillsMenu(); break;
-    case 'prompts': action = await showPromptsMenu(); break;
-  }
+  const result = await {
+    agents: agentMenu,
+    skills: skillMenu,
+    prompts: promptMenu
+  }[choice]();
   
-  if (action === 'back') return await mainMenu();
-  return action;
+  return result === 'back' ? mainMenu() : result;
 }
 
 // ═══════════════════════════════════════════════════════════
-// MAIN
+// ENTRY
 // ═══════════════════════════════════════════════════════════
 
 async function main() {
   while (true) {
-    const action = await mainMenu();
-    if (action === 'exit') {
+    const result = await mainMenu();
+    if (result === 'exit') {
       console.log('\n' + theme.primary('🐶 Goodbye!\n'));
       break;
     }
