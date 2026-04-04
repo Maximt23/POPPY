@@ -1361,22 +1361,36 @@ async function quickAgentMode() {
 
 async function manageProjects() {
   showHeader();
-  log.title('📁 Project Management');
+  log.title('📁 My Projects');
 
-  const projects = await loadProjects();
+  const projectsData = await loadProjects();
   const gitConfig = await loadGitConfig();
+  const projects = projectsData.projects || [];
+  
+  if (projects.length === 0) {
+    log.warning('No projects created yet!');
+    log.info('Use "Create New Project" to create your first project.');
+  } else {
+    log.success(`Total projects: ${projects.length}`);
+    log.divider();
 
-  console.log(boxen(
-    projects.projects.map(p => 
-      theme.primary(`📁 ${p.name}`) + '\n' +
-      theme.dim(`   ID: ${p.id}`) + '\n' +
-      theme.dim(`   Path: ${p.path}`) + '\n' +
-      theme.secondary(`   Type: ${p.type}`) + '\n' +
-      theme.accent(`   Status: ${p.active ? 'Active' : 'Inactive'}`) +
-      (p.gitInitialized ? '\n' + theme.accent('   ✓ Git initialized') : '')
-    ).join('\n\n'),
-    { padding: 1, borderStyle: 'round', borderColor: '#22c55e' }
-  ));
+    for (const p of projects) {
+      const status = p.active 
+        ? theme.accent('🟢 Active')
+        : theme.dim('⚪ Inactive');
+      
+      const gitStatus = p.gitInitialized 
+        ? theme.accent('✓ Git')
+        : theme.dim('(no git)');
+
+      console.log(
+        theme.primary.bold(`📁 ${p.name}`) + ' ' + status + '\n' +
+        theme.dim(`   ID: ${p.id}`) + '\n' +
+        theme.dim(`   Path: ${p.path}`) + '\n' +
+        theme.secondary(`   Type: ${p.type}`) + ' | ' + gitStatus + '\n'
+      );
+    }
+  }
 
   log.divider();
   
@@ -5699,7 +5713,8 @@ showProjectsMenu = async function() {
   showHeader();
   log.title('📁 Projects');
   
-  const projects = await loadProjects();
+  const projectsData = await loadProjects();
+  const projects = projectsData.projects || [];
   const agents = await loadAgents();
   
   log.info(`${projects.length} projects | ${agents.length} agents ready`);
@@ -5711,7 +5726,7 @@ showProjectsMenu = async function() {
     message: theme.accent('Choose action:'),
     choices: [
       { name: theme.accent('➕ Create New Project'), value: 'create' },
-      { name: theme.secondary('📂 Open Project'), value: 'open' },
+      { name: theme.secondary('📁 My Projects'), value: 'list' },
       { name: theme.info('🔄 Sync from AI Engines'), value: 'sync' },
       { name: theme.accent('📤 Upload to Marketplace'), value: 'upload' },
       { name: theme.warning('🗑️  Delete Project'), value: 'delete' },
