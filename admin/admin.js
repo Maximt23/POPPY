@@ -112,6 +112,73 @@ function isCreatorVersion() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// 👑 CREATOR VERSION PASSWORD PROTECTION
+// ═══════════════════════════════════════════════════════════
+
+async function verifyCreatorPassword() {
+  // Check if this is the creator version
+  if (!isCreatorVersion()) {
+    return true; // Not creator version, no password needed
+  }
+  
+  // Load config
+  const config = await loadConfig();
+  
+  // Check if password is set
+  if (!config.creatorPasswordHash) {
+    // First time setup - ask user to set password
+    showHeader();
+    console.log(theme.primary.bold('\n  👑 CREATOR VERSION FIRST SETUP\n'));
+    console.log(theme.secondary('  This is the private creator version of POPPY.\n'));
+    
+    const { password } = await inquirer.prompt([{
+      type: 'password',
+      name: 'password',
+      message: theme.primary('Set a password for POPPY-MAXIM:'),
+      mask: '●',
+      validate: (input) => input.length >= 4 || 'Password must be at least 4 characters'
+    }]);
+    
+    const { confirmPassword } = await inquirer.prompt([{
+      type: 'password',
+      name: 'confirmPassword',
+      message: theme.primary('Confirm password:'),
+      mask: '●',
+      validate: (input) => input === password || 'Passwords do not match'
+    }]);
+    
+    // Simple hash (not for production security, just to prevent casual access)
+    const hash = Buffer.from(password).toString('base64');
+    config.creatorPasswordHash = hash;
+    await saveConfig(config);
+    
+    log.success('Password set successfully!');
+    await pause();
+    return true;
+  }
+  
+  // Password exists - require authentication
+  const { password } = await inquirer.prompt([{
+    type: 'password',
+    name: 'password',
+    message: theme.primary('🔐 Enter POPPY-MAXIM password:'),
+    mask: '●'
+  }]);
+  
+  const hash = Buffer.from(password).toString('base64');
+  if (hash !== config.creatorPasswordHash) {
+    console.log('\n' + theme.error.bold('✗ ACCESS DENIED'));
+    console.log(theme.error('Invalid password. Exiting...'));
+    process.exit(1);
+  }
+  
+  // Password verified - show welcome message
+  console.log('\n' + theme.accent('🔓 Welcome back, Maxim! 🐶'));
+  await new Promise(r => setTimeout(r, 800));
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
 // 🗂️  MONOREPO STRUCTURE
 // ═══════════════════════════════════════════════════════════
 
@@ -1822,6 +1889,12 @@ function showVersion() {
 }
 
 async function main() {
+  // 👑 Verify password for creator version
+  const passwordVerified = await verifyCreatorPassword();
+  if (!passwordVerified) {
+    process.exit(1);
+  }
+  
   // Parse command-line arguments
   const args = process.argv.slice(2);
   

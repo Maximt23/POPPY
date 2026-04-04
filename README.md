@@ -76,22 +76,43 @@ Skills are reusable "abilities" agents can learn:
 ```
 POPPY Main Menu
 │
+├── ▶ Launch AI Engine
+│   ├── ▶ Launch with Agent
+│   └── 🐶 Code Puppy (and other detected engines)
+│
+├── ➕ New Project
+│   └── Interactive project creation wizard
+│
 ├── 📁 Projects
 │   ├── ➕ Create New Project
-│   ├── 📁 My Projects
+│   ├── 📁 My Projects (view all projects)
 │   ├── 📥 Import Project
+│   ├── 📤 Upload to Marketplace
+│   ├── 🗑️  Delete Project
+│   ├── 📊 Status
 │   └── 🔄 Sync from AI Engines
 │
 ├── 🤖 Agents
 │   ├── ➕ Create Agent
-│   ├── 📁 My Agents
+│   ├── 📁 My Agents (view all agents)
+│   ├── 📤 Upload to Marketplace
+│   ├── 🗑️  Delete
 │   └── 🔄 Sync from AI Engines
 │
 ├── 🎯 Skills
 │   ├── ➕ Create Skill
-│   ├── 📁 My Skills
-│   ├── ➕ Attach to Agent
+│   ├── 📁 My Skills (view all skills)
+│   ├── 🔗 Attach to Agent
+│   ├── 📤 Upload to Marketplace
+│   ├── 🗑️  Delete
 │   └── 🔄 Sync from AI Engines
+│
+├── 💬 Prompts
+│   ├── ➕ Create Prompt
+│   ├── 📁 My Prompts
+│   ├── 🔗 Attach to Agent
+│   ├── 📤 Upload to Marketplace
+│   └── 🗑️  Delete
 │
 ├── 🔐 API Keys
 │   └── Manage API Keys (OpenAI, Anthropic, etc.)
@@ -100,6 +121,291 @@ POPPY Main Menu
 │   ├── 📊 Status
 │   ├── ⬆️  Push Changes
 │   └── ⚙️  Configuration
+│
+├── ⚙️  System
+│   ├── 📊 Analytics (personal usage)
+│   ├── ⚙️  Settings
+│   ├── 📅 Daily Focus
+│   ├── 📋 View Log
+│   └── 🤖 Agent Settings
+│
+└── ✕ Exit
+```
+
+---
+
+## 🏗️ Architecture
+
+POPPY is designed as a **management layer** that sits above your AI engines:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    POPPY (Manager Layer)                    │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
+│  │   Projects  │  │   Agents    │  │      Analytics      │   │
+│  │   Skills    │  │ Marketplace │  │    Daily Focus      │   │
+│  │   Prompts   │  │             │  │    Work Logs        │   │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘   │
+│         └─────────────────┴─────────────────────┘            │
+│                      Engine Manager                           │
+│              (Detects & Launches AI Engines)                │
+└──────────────────────────┬────────────────────────────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+    ┌────▼────┐      ┌────▼────┐      ┌────▼────┐
+    │  Codex  │      │ Claude  │      │ Cursor  │
+    │(OpenAI) │      │(Anthropic)│     │ (Editor)│
+    └────┬────┘      └────┬────┘      └────┬────┘
+         │                 │                 │
+         └─────────────────┴─────────────────┘
+                    Your Projects
+```
+
+### How It Works
+
+1. **Engine Detection** - POPPY scans for installed AI engines
+2. **Context Injection** - When launching an engine, POPPY writes context files:
+   - For Codex: Creates `.codex` instructions
+   - For Claude: Creates `CLAUDE.md` 
+   - For Cursor: Creates `.cursorrules`
+3. **Unified Interface** - Same workflow regardless of which engine you use
+
+### Data Flow
+
+```
+User runs "poppy"
+    ↓
+POPPY shows Main Menu
+    ↓
+User selects "📁 Projects" → "📁 My Projects"
+    ↓
+POPPY loads projects from ~/.poppy/projects.json
+    ↓
+Shows list of all projects with status
+    ↓
+User selects project + "▶ Launch AI Engine"
+    ↓
+POPPY:
+  1. Writes context file (CLAUDE.md, .cursorrules, etc.)
+  2. Launches AI engine in project directory
+  3. Engine reads context → knows about project
+```
+
+---
+
+## 📥 Importing Projects
+
+POPPY can import projects from anywhere:
+
+### From GitHub/GitLab
+```bash
+poppy
+→ Projects
+→ Import Project
+→ GitHub / GitLab
+→ Enter URL: https://github.com/user/repo
+```
+
+### From Local Directory
+```bash
+poppy
+→ Projects
+→ Import Project
+→ Local Directory
+→ Enter path: /path/to/project
+```
+
+### From ZIP File
+```bash
+poppy
+→ Projects
+→ Import Project
+→ ZIP Archive
+→ Select ZIP file
+```
+
+---
+
+## 🎯 Working with Skills
+
+### Create a Skill
+```bash
+poppy
+→ Skills
+→ Create Skill
+→ Name: react-patterns
+→ Category: Frontend
+→ Content: [knowledge, patterns, rules]
+```
+
+### Attach Skill to Agent
+```bash
+poppy
+→ Skills
+→ Attach to Agent
+→ Select skill: react-patterns
+→ Select agent: Frontend Expert
+```
+
+---
+
+## 🔐 API Key Management
+
+POPPY securely manages API keys:
+```bash
+poppy
+→ API Keys
+→ Manage API Keys
+→ Add keys for OpenAI, Anthropic, etc.
+```
+
+Keys are:
+- ✅ Encrypted at rest using AES-256
+- ✅ Never exposed to agents or logged
+- ✅ Used only by POPPY to launch engines
+
+---
+
+## 🔄 Daily Workflow
+
+**Morning:**
+```bash
+poppy → System → Daily Focus
+→ Select today's priority projects
+→ Set focus areas
+```
+
+**Work:**
+```bash
+poppy → Projects → My Projects
+→ Select project
+→ Choose AI engine to launch
+→ Start coding with injected context
+```
+
+**End of Day:**
+```bash
+poppy → System → View Log
+→ Review what was accomplished
+→ Git → Commit Changes
+```
+
+---
+
+## 🌐 Supported Systems
+
+**AI Engines:**
+- ✅ OpenAI Codex
+- ✅ Anthropic Claude Code
+- ✅ Cursor
+- ✅ Custom engines (extensible)
+
+**Git Providers:**
+- ✅ GitHub
+- ✅ GitLab
+- ✅ Bitbucket
+
+**Platforms:**
+- ✅ Windows 10/11
+- ✅ macOS
+- ✅ Linux
+
+---
+
+## 📄 Documentation
+
+- **[ARCHITECTURE.md](admin/ARCHITECTURE.md)** - System architecture and design
+- **[DUAL-REPO-SETUP.md](DUAL-REPO-SETUP.md)** - For contributors (setup details)
+- **[WORKFLOW.md](WORKFLOW.md)** - Development workflow guide
+- **[QUICKSTART.md](QUICKSTART.md)** - Quick reference
+
+---
+
+## 🤝 Contributing
+
+POPPY is open source! We welcome contributions:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'feat: add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+See [WORKFLOW.md](WORKFLOW.md) for detailed contribution guidelines.
+
+---
+
+## 🆚 POPPY vs POPPY-MAXIM
+
+| Feature | POPPY (This Repo) | POPPY-MAXIM (Creator) |
+|---------|-------------------|----------------------|
+| **Visibility** | 🌐 Public | 🔒 Private |
+| **Use Case** | Template for users | Maxim's daily workspace |
+| **Menu** | Standard menus | + 👑 Creator Dashboard |
+| **Analytics** | Personal only | Personal + Global creator data |
+| **Projects** | Empty template | Actual projects (P1, P2, etc.) |
+| **Data** | No personal data | Contains all personal data |
+| **Purpose** | Community tool | Creator's personal version |
+
+**POPPY** is the open-source template that anyone can clone and use.
+
+**POPPY-MAXIM** is the private creator version with global analytics and Maxim's actual projects.
+
+---
+
+## 🛠️ Troubleshooting
+
+### "poppy" command not found
+```bash
+# Windows: Add to PATH or restart terminal
+# Mac/Linux: Source your shell config
+source ~/.bashrc  # or ~/.zshrc
+```
+
+### Need to reset POPPY
+```bash
+# Delete config (keeps projects)
+rm ~/.poppy/config.json
+```
+
+### Installation issues
+See [SETUP_POPPY.cmd](admin/SETUP_POPPY.cmd) (Windows) or [install.sh](admin/install.sh) (Mac/Linux).
+
+---
+
+## 📄 License
+
+MIT License - See [LICENSE](admin/LICENSE)
+
+---
+
+## 🙏 Credits
+
+Created by **Maxim Tsitolovsky** - Inspired by the need for a unified AI workspace.
+
+**Ready? Run `poppy` and start organizing your AI workflow!** 🚀
+
+---
+
+<p align="center">
+  🐶 <strong>POPPY</strong> - Organize Your AI Workspace
+</p>
+│
+├── 🎯 Skills
+│   ├── ➕ Create Skill
+│   ├── 📁 My Skills
+│   ├── 🔗 Attach to Agent
+│   ├── 🔄 Sync from AI Engines
+│   ├── 📤 Upload to Marketplace
+│   └── 🗑️  Delete Skill
+│
+├── 🔐 API Keys
+│
+├── 🔀 Git
+│   ├── 📊 Status
+│   ├── ⬆️  Push Changes
+│   └── ⚙️  Git Configuration
 │
 ├── ⚙️  System
 │   ├── ⚙️  Settings
@@ -118,31 +424,44 @@ POPPY is designed as a **management layer** that sits above your AI engines:
 
 ```
 ┌─────────────────────────────────────────┐
-│           POPPY (Manager Layer)         │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐  │
-│  │ Projects│ │ Agents  │ │  APIs   │  │
-│  │ Skills  │ │Marketplace│ │ Analytics│  │
-│  └────┬────┘ └────┬────┘ └────┬────┘  │
-│       └─────────────┴─────────────┘     │
-│              Engine Manager              │
-└─────────────────┬──────────────────────┘
-                  │
-    ┌─────────────┼─────────────┐
-    │             │             │
-┌───▼────┐   ┌───▼────┐   ┌───▼────┐
-│ Codex  │   │ Claude │   │ Cursor │
-│(OpenAI)│   │(Anthro)│   │(Editor)│
-└────────┘   └────────┘   └────────┘
+│         🐶 POPPY (Manager Layer)        │
+│                                         │
+│   ┌─────────┐  ┌─────────┐  ┌────────┐ │
+│   │ Projects│  │  Agents │  │ Skills │ │
+│   ├─────────┤  ├─────────┤  ├────────┤ │
+│   │My Proj. │  │ My Agt. │  │My Skill│ │
+│   │Create   │  │Create   │  │Create  │ │
+│   │Import   │  │Delete   │  │Attach  │ │
+│   │Delete   │  │Upload   │  │Upload  │ │
+│   └────┬────┘  └────┬────┘  └───┬────┘ │
+│        └─────────────┴───────────┘      │
+│              Engine Manager               │
+│   ┌─────────────────────────────────┐   │
+│   │  Detects & Launches AI Engines   │   │
+│   └─────────────────────────────────┘   │
+└──────────────────┬──────────────────────┘
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+┌───▼────┐   ┌────▼────┐   ┌─────▼───┐
+│ 🐶     │   │  🔷     │   │   🟣    │
+│Code    │   │ Codex   │   │ Claude  │
+│Puppy   │   │(OpenAI) │   │(Anthro) │
+└────────┘   └─────────┘   └─────────┘
+    │              │              │
+    └──────────────┴──────────────┘
+              Your Projects
 ```
 
 ### How It Works
 
-1. **Engine Detection** - POPPY scans for installed AI engines
-2. **Context Injection** - When launching an engine, POPPY writes context files:
+1. **Engine Detection** - POPPY scans for installed AI engines on startup
+2. **Menu Adaptation** - Only shows engines you actually have installed
+3. **Context Injection** - When launching an engine, POPPY writes context files:
    - For Codex: Creates `.codex` instructions
    - For Claude: Creates `CLAUDE.md` 
    - For Cursor: Creates `.cursorrules`
-3. **Unified Interface** - Same workflow regardless of which engine you use
+4. **Unified Interface** - Same workflow regardless of which engine you use
 
 ### Data Storage
 

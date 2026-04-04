@@ -1,309 +1,456 @@
 # POPPY Architecture
 
-## The Vision: Universal AI Engine Overlay
+## The Vision: Universal AI Workspace Manager
 
-**POPPY is not just a project manager - it's a terminal-based management layer that sits ON TOP of any AI coding engine.**
+**POPPY is a terminal-based management layer that unifies AI coding engines, projects, agents, skills, and workflows in one place.**
 
 Think of it like this:
-- **Codex** = AI engine (like VS Code)
-- **Claude Code** = AI engine (like terminal)
-- **Cursor** = AI engine (like IDE)
-- **POPPY** = Universal overlay that manages ALL of them
+- **Codex** = AI engine (from OpenAI)
+- **Claude Code** = AI engine (from Anthropic)
+- **Cursor** = AI engine (from Cursor)
+- **POPPY** = Universal overlay that manages ALL of them + your projects + agents + skills
 
 ```
-┌─────────────────────────────────────────┐
-│           POPPY (Manager Layer)         │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐   │
-│  │ Agents  │ │ Projects│ │  APIs   │   │
-│  │Marketplace│ │  Daily  │ │ Models  │   │
-│  └────┬────┘ └────┬────┘ └────┬────┘   │
-│       └─────────────┴─────────────┘      │
-│              Engine Manager               │
-└─────────────────┬─────────────────────────┘
-                  │
-    ┌─────────────┼─────────────┐
-    │             │             │
-┌───▼────┐   ┌───▼────┐   ┌───▼────┐
-│ Codex  │   │ Claude │   │ Cursor │
-│(OpenAI)│   │(Anthro)│   │(Editor)│
-└────────┘   └────────┘   └────────┘
-    │             │             │
-    └─────────────┴─────────────┘
-              Your Projects
+┌─────────────────────────────────────────────────────────────────────┐
+│                         USER INTERFACE                               │
+│  Terminal Menu System (Inquirer.js)                                  │
+│  ┌─────────────────────────────────────────────────────────────────┐ │
+│  │  Main Menu: ▶ Launch | ➕ New | 📁 Projects | 🤖 Agents | etc.  │ │
+│  └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      POPPY CORE SYSTEM                               │
+│                                                                      │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐    │
+│  │    MENU      │  │   ENTITY     │  │      DATA LAYER          │    │
+│  │   SYSTEM     │  │  MANAGERS    │  │   (File System Based)    │    │
+│  │              │  │              │  │                          │    │
+│  │ • mainMenu() │  │ • Projects   │  │  ~/.poppy/               │    │
+│  │ • showXMenu()│  │ • Agents     │  │  ├── config.json         │    │
+│  │ • listX()    │  │ • Skills     │  │  ├── api-keys.enc        │    │
+│  │ • createX()  │  │ • Prompts    │  │  ├── projects.json      │    │
+│  │ • deleteX()  │  │ • Analytics  │  │  └── agents/            │    │
+│  └──────────────┘  └──────────────┘  └──────────────────────────┘    │
+│                          │                                          │
+│  ┌───────────────────────┴──────────────────────────────────────┐  │
+│  │                   ENGINE MANAGER                                │  │
+│  │  ┌─────────────────────────────────────────────────────────┐  │  │
+│  │  │  Detects & Launches: Codex, Claude, Cursor, etc.       │  │  │
+│  │  │  • detectEngines()                                      │  │  │
+│  │  │  • launchEngine()                                       │  │  │
+│  │  │  • injectContext()                                      │  │  │
+│  │  └─────────────────────────────────────────────────────────┘  │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+                    ▼               ▼               ▼
+              ┌──────────┐   ┌──────────┐   ┌──────────┐
+              │  Codex   │   │  Claude  │   │  Cursor  │
+              │ (OpenAI) │   │(Anthropic)│   │ (Editor) │
+              └────┬─────┘   └────┬─────┘   └────┬─────┘
+                   │               │               │
+                   └───────────────┴───────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │        YOUR PROJECTS         │
+                    │    P1/  P2/  P3/  admin/     │
+                    └─────────────────────────────┘
 ```
-
-## How It Works
-
-### 1. Engine Detection
-POPPY automatically detects which AI engines you have installed:
-```javascript
-await engineManager.detectEngines();
-// Returns: ['codex', 'claude-code'] based on what's installed
-```
-
-### 2. Context Injection
-When you launch an engine through POPPY, it **injects context** into that engine:
-
-**For Codex:**
-- Creates `.codex` config file
-- Injects agent system prompt
-- Sets model preferences
-
-**For Claude Code:**
-- Creates/updates `CLAUDE.md`
-- Injects agent instructions
-- Sets project context
-
-**For Cursor:**
-- Creates `.cursorrules` file
-- Creates `.cursor/poppy-context.json`
-- Injects behavior patterns
-
-### 3. The Flow
-
-```
-User opens terminal
-    ↓
-User types: poppy
-    ↓
-POPPY shows menu:
-  - Launch with Agent → Browse agents → Select engine → Launch
-  - Quick Launch → Select engine → Launch with default
-  - Browse Marketplace → Install agent → Use later
-    ↓
-User selects "Launch with Agent"
-    ↓
-POPPY shows available agents (from marketplace + local)
-    ↓
-User selects "React Expert" agent
-    ↓
-POPPY detects engines: [Codex, Claude, Cursor]
-    ↓
-User selects Claude Code
-    ↓
-POPPY:
-  1. Writes CLAUDE.md with React Expert context
-  2. Launches: claude [project-path]
-  3. Claude Code reads CLAUDE.md
-  4. User now has React Expert agent active in Claude!
-```
-
-## File Structure
-
-```
-~/.poppy/                          # POPPY config directory
-├── config.json                     # User preferences
-├── api-keys.enc                    # Encrypted API keys
-├── installed-agents/               # Downloaded marketplace agents
-│   ├── react-expert.json
-│   └── security-auditor.json
-└── my-agents/                      # User's custom agents
-    └── my-custom-agent.json
-
-~/Projects/                         # Your projects
-├── my-app/
-│   ├── CLAUDE.md                   # Injected by POPPY (Claude)
-│   ├── .codex                      # Injected by POPPY (Codex)
-│   ├── .cursorrules                # Injected by POPPY (Cursor)
-│   └── .cursor/poppy-context.json  # POPPY metadata
-└── another-project/
-
-AI Engine Configs (native):
-~/.codex/config.json               # Codex native config
-~/.claude/config.json              # Claude Code native config
-```
-
-## The Adapter Pattern
-
-Each AI engine has an adapter that knows how to:
-1. **Detect** if it's installed
-2. **Launch** the engine
-3. **Inject** POPPY context
-
-### Base Adapter Interface
-```javascript
-class EngineAdapter {
-  async detect()        // Is this engine installed?
-  async launch()        // Start the engine
-  async injectContext() // Add POPPY context
-  async sendCommand()   // Send commands
-  async stop()          // Kill process
-}
-```
-
-### Codex Adapter
-```javascript
-class CodexAdapter extends EngineAdapter {
-  async injectContext(context) {
-    // Create .codex file with agent config
-    // Include systemPrompt, instructions, model
-  }
-}
-```
-
-### Claude Adapter
-```javascript
-class ClaudeAdapter extends EngineAdapter {
-  async injectContext(context) {
-    // Create CLAUDE.md with:
-    // - Agent name & description
-    // - System instructions
-    // - Project context
-    // - POPPY metadata
-  }
-}
-```
-
-### Cursor Adapter
-```javascript
-class CursorAdapter extends EngineAdapter {
-  async injectContext(context) {
-    // Create .cursorrules with rules
-    // Create .cursor/poppy-context.json
-  }
-}
-```
-
-## API Key Security
-
-Keys are **never shared** with engines directly. Instead:
-
-1. User adds key to POPPY: `poppy api add openai`
-2. POPPY encrypts and stores: `~/.poppy/api-keys.enc`
-3. When launching engine, POPPY:
-   - Sets env vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
-   - OR engine reads from its native config
-4. Engine uses key natively
-5. Agent definitions never contain keys
-
-## Agent Marketplace Architecture
-
-### Public Registry (GitHub)
-```
-poppy-registry/                    # github.com/Maximt23/poppy-registry
-├── agents/
-│   ├── react-expert.json          # Community agent
-│   ├── node-expert.json
-│   └── security-auditor.json
-├── categories.json
-└── index.json                     # Agent index with metadata
-```
-
-### Agent Definition (Safe to Share)
-```json
-{
-  "id": "react-expert",
-  "name": "React Expert",
-  "description": "Specialized in React patterns",
-  "systemPrompt": "You are a React expert...",
-  "instructions": ["Use hooks", "Prefer functional components"],
-  "requiresApiKey": true,
-  "recommendedProvider": "anthropic",
-  "recommendedModel": "claude-3-5-sonnet",
-  // NO API KEYS HERE!
-}
-```
-
-## In-Terminal Experience
-
-### Launching POPPY
-```bash
-$ poppy
-
-  ██████╗  ██████╗ ██████╗ ██████╗ ██╗   ██╗
-  ██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██║   ██║
-  ██████╔╝██║   ██║██████╔╝██████╔╝╚██████╔╝
-  ██╔═══╝ ██║   ██║██╔═══╝ ██╔═══╝  ╚═══██║
-  ██║     ╚██████╔╝██║     ██║         ██║
-  ╚═╝      ╚══════╝╚═╝     ╚═╝         ╚═╝
-
-? Select an option: 
-  ❯ Launch with Agent
-    Quick Launch Engine
-    Engine Status
-  ─── Project Management ───
-    Start New Project
-    Manage Projects
-    Launch Project
-  ─── Agent Marketplace ───
-    Browse Agents
-    My Installed Agents
-    Create Agent
-    Publish Agent
-```
-
-### Launching with Agent
-```bash
-? Select agent: React Expert (⭐ 4.8, 15K downloads)
-? Select engine: Claude Code
-
-[POPPY] Activating agent: React Expert
-[POPPY] Description: Specialized in React patterns
-[POPPY] Engine: Anthropic Claude Code
-
-[POPPY] Launching Claude Code in: /Users/me/Projects/my-app
-# Claude Code opens with React Expert context loaded!
-
-╭─ Claude Code ──────────────────────────────────────────╮
-│ Now chatting with Claude                                │
-│                                                         │
-│ > help me refactor this component to use hooks          │
-│                                                         │
-│ I'll help you refactor this to use React hooks...       │
-│ (Using React Expert agent context)                      │
-╰────────────────────────────────────────────────────────╯
-```
-
-## Multi-Engine Workflow
-
-```bash
-# Morning: Use Claude for architecture
-$ poppy
-> Launch with Agent
-> Agent: System Architect
-> Engine: Claude Code
-# (Claude opens with architect context)
-
-# Afternoon: Use Codex for implementation
-$ poppy
-> Launch with Agent
-> Agent: Implementation Helper
-> Engine: Codex
-# (Codex opens with implementation context)
-
-# Evening: Use Cursor for UI polish
-$ poppy
-> Launch with Agent
-> Agent: UI/UX Reviewer
-> Engine: Cursor
-# (Cursor opens with design context)
-```
-
-## Why This Architecture?
-
-1. **Non-intrusive** - Doesn't replace your AI tools, enhances them
-2. **Universal** - Works with any AI engine that exists or will exist
-3. **Secure** - API keys stay local, agents are shareable
-4. **Flexible** - Switch engines mid-project without losing context
-5. **Community** - Share expertise without sharing credentials
-
-## The Big Picture
-
-**POPPY is the missing layer** between:
-- **AI Engines** (Codex, Claude, Cursor) = The workers
-- **Your Projects** = The work
-- **Your Knowledge** (agents) = The expertise
-
-POPPY connects them all in a unified, terminal-based interface.
 
 ---
 
-**Result**: You have ONE tool (POPPY) that manages:
-- Which AI engine to use
-- What agent context to apply
-- Which model/API to use
-- Your projects and progress
-- Your API keys (securely)
-- The community marketplace
+## System Architecture
 
-All from your terminal. 🚀
+### 1. Menu System (UI Layer)
+
+**Main Menu** (`mainMenu()`)
+```
+┌─────────────────────────────────────────┐
+│      🐶 POPPY Main Menu                 │
+├─────────────────────────────────────────┤
+│  ▶ Launch AI Engine                     │
+│  ➕ New Project                          │
+│  📁 Projects                             │
+│  🤖 Agents                               │
+│  🎯 Skills                               │
+│  💬 Prompts                              │
+│  🔐 API Keys                             │
+│  🔀 Git                                  │
+│  ⚙️  System                               │
+│  ✕ Exit                                  │
+└─────────────────────────────────────────┘
+```
+
+**Sub-Menu Pattern** (All entity menus follow this structure):
+```
+┌─────────────────────────────────────────┐
+│      📁 Projects Menu                   │
+├─────────────────────────────────────────┤
+│  ➕ Create New Project                   │
+│  📁 My Projects                          │ ← Real data-backed list
+│  📥 Import Project                       │
+│  📤 Upload to Marketplace                │
+│  🗑️  Delete Project                      │
+│  📊 Status                               │
+│  🔄 Sync from AI Engines                 │
+│  ← Back                                  │
+└─────────────────────────────────────────┘
+```
+
+### 2. Entity System (Data Layer)
+
+Each entity (Projects, Agents, Skills, Prompts) follows the same pattern:
+
+```
+Entity Lifecycle:
+
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│  LIST   │───→│  LOAD   │───→│ DISPLAY │───→│ ACTION  │
+│  (Menu) │    │ (File)  │    │ (Terminal)│   │(Handler)│
+└─────────┘    └─────────┘    └─────────┘    └─────────┘
+     │                                            │
+     │         ┌─────────┐    ┌─────────┐         │
+     │         │  CREATE │    │  DELETE │         │
+     └────────→│  UPDATE │    │  EXPORT │←────────┘
+               │  SAVE   │    │  IMPORT │
+               └─────────┘    └─────────┘
+```
+
+**Core Functions per Entity:**
+```javascript
+// Projects
+loadProjects()      → Read from ~/.poppy/projects.json
+listProjects()      → Display all projects in terminal
+createNewProject()  → Wizard + mkdir + git init
+manageProjects()    → View + status + actions
+
+// Agents
+loadAgents()        → Read from ~/.poppy/agents/
+listAgents()        → Display all agents
+addAgent()          → Wizard + save JSON
+shareAgent()        → Export to marketplace
+
+// Skills
+loadSkills()        → Read from ~/.poppy/skills/
+listSkills()        → Display all skills
+createSkill()       → Wizard + save
+attachSkill()       → Link to agent
+```
+
+### 3. Data Storage Architecture
+
+```
+File System Structure:
+
+~/.poppy/                          # User config directory
+├── config.json                     # User settings, preferences
+├── api-keys.enc                   # Encrypted API keys
+├── projects.json                  # Project registry
+├── agents/                        # Downloaded agents
+│   ├── agent-foreman.json
+│   └── agent-qa.json
+├── skills/                        # Installed skills
+│   └── react-patterns.json
+└── prompts/                       # Saved prompts
+    └── my-template.json
+
+~/POPPY/                           # Workspace directory
+├── P1/                           # Project folders
+│   ├── .git/
+│   ├── src/
+│   └── CLAUDE.md                 # Auto-generated context
+├── P2/
+├── P3-Admin/                     # POPPY admin project
+├── admin/                        # POPPY system files
+│   ├── admin.js                 # Main system
+│   └── lib/                     # Libraries
+└── agents/                       # Shared agents
+    └── lead-connector.json
+```
+
+### 4. Engine Integration System
+
+```
+Engine Launch Flow:
+
+User selects "▶ Launch AI Engine"
+              ↓
+      showLaunchMenu()
+              ↓
+    ┌─────────────────────┐
+    │ Detect Engines      │───→ engineManager.detectEngines()
+    │ • Codex?            │      Check for installed engines
+    │ • Claude?           │
+    │ • Cursor?           │
+    └─────────────────────┘
+              ↓
+    ┌─────────────────────┐
+    │ User Selection      │
+    │ → Project?          │
+    │ → Agent?            │
+    │ → Engine?           │
+    └─────────────────────┘
+              ↓
+    ┌─────────────────────┐
+    │ Inject Context      │───→ injectContext(engine, project, agent)
+    │                     │
+    │ • Write CLAUDE.md   │
+    │ • Write .cursorrules│
+    │ • Write .codex      │
+    └─────────────────────┘
+              ↓
+    ┌─────────────────────┐
+    │ Launch Engine       │───→ launchEngine(engine, projectPath)
+    │                     │
+    │ $ claude .          │
+    │ $ cursor .          │
+    │ $ codex agent-mode  │
+    └─────────────────────┘
+              ↓
+    Engine starts with POPPY context!
+```
+
+**Context Injection Examples:**
+
+For **Claude Code**:
+```markdown
+# CLAUDE.md (auto-generated by POPPY)
+## Project: WearWise
+
+You are working on a React Native mobile app for wardrobe management.
+
+## Current Agent: Frontend Expert
+Focus on UI/UX improvements and React best practices.
+
+## Skills Attached:
+- react-patterns
+- ui-styling
+
+## Today's Focus:
+- Implement outfit suggestion algorithm
+- Fix camera integration bugs
+```
+
+For **Cursor**:
+```javascript
+// .cursorrules (auto-generated by POPPY)
+{
+  "project": "WearWise",
+  "agent": "Frontend Expert",
+  "skills": ["react-patterns", "ui-styling"],
+  "dailyFocus": "Implement outfit suggestion algorithm",
+  "codingStyle": "React Native with TypeScript",
+  "testRequirements": true
+}
+```
+
+---
+
+## Data Flow Architecture
+
+### Reading Data (List Views)
+
+```
+User selects "📁 My Projects"
+              ↓
+    ┌─────────────────────┐
+    │ showProjectsMenu()  │
+    │ case 'list':        │
+    └─────────────────────┘
+              ↓
+    ┌─────────────────────┐
+    │ manageProjects()    │
+    │                     │
+    │ 1. loadProjects()   │───→ Read ~/.poppy/projects.json
+    │ 2. For each project │
+    │    → Read metadata  │
+    │    → Check git status│
+    │    → Check active   │
+    │ 3. Display in boxen │───→ Terminal UI
+    └─────────────────────┘
+              ↓
+    User sees real project list!
+    📁 WearWise (Active)
+       Path: P1/
+       Type: React Native
+       Git: ✓ Clean
+    📁 Admin Console
+       Path: admin/
+       Type: CLI Tool
+```
+
+### Writing Data (Create/Update)
+
+```
+User selects "➕ Create New Project"
+              ↓
+    ┌─────────────────────┐
+    │ createNewProject()  │
+    │                     │
+    │ 1. Prompt wizard    │
+    │    → Name?          │
+    │    → Type?          │
+    │    → Template?      │
+    │                     │
+    │ 2. Create directory │───→ mkdir P3/
+    │                     │
+    │ 3. Copy template    │───→ Copy React template
+    │                     │
+    │ 4. Git init         │───→ git init
+    │                     │
+    │ 5. Update registry  │───→ Save to projects.json
+    │                     │
+    │ 6. Create context   │───→ Write CLAUDE.md
+    └─────────────────────┘
+              ↓
+    Project created + Registered in POPPY!
+```
+
+---
+
+## Security Architecture
+
+### API Key Management
+
+```
+User adds API key
+      ↓
+┌──────────────────────────┐
+│ apiKeyManager.add()      │
+│                          │
+│ 1. Encrypt with AES-256  │───→ Secure encryption
+│ 2. Store in api-keys.enc │───→ Never plaintext
+│ 3. Mask in UI            │───→ sk-...xyz
+└──────────────────────────┘
+      ↓
+Key is secure!
+
+Later: Launch engine
+      ↓
+┌──────────────────────────┐
+│ launchEngine()           │
+│                          │
+│ 1. Decrypt key           │───→ Decrypt in memory only
+│ 2. Pass to engine        │───→ env var / config
+│ 3. Clear from memory     │───→ No persistence
+└──────────────────────────┘
+```
+
+---
+
+## Module Structure
+
+```
+admin/
+├── admin.js                    # Main entry point
+│   ├── mainMenu()             # Main menu dispatcher
+│   ├── showProjectsMenu()     # Projects menu
+│   ├── showAgentsMenu()       # Agents menu
+│   ├── showSkillsMenu()       # Skills menu
+│   ├── showPromptsMenu()      # Prompts menu
+│   ├── showLaunchMenu()       # Engine launcher
+│   ├── showSystemMenu()       # System settings
+│   └── list/create/manage     # Entity handlers
+│
+└── lib/
+    ├── config.js              # Configuration management
+    │   ├── loadConfig()
+    │   └── saveConfig()
+    │
+    ├── engine-manager.js      # AI engine integration
+    │   ├── detectEngines()
+    │   ├── launchEngine()
+    │   └── injectContext()
+    │
+    ├── api-manager.js         # Secure API key storage
+    │   ├── addKey()
+    │   ├── getKey()
+    │   └── encrypt/decrypt
+    │
+    ├── marketplace.js          # Agent marketplace
+    │   ├── browseAgents()
+    │   └── downloadAgent()
+    │
+    └── engine-adapters/        # Per-engine adapters
+        ├── base.js            # Base adapter
+        ├── claude.js          # Claude Code adapter
+        ├── codex.js           # Codex adapter
+        └── cursor.js          # Cursor adapter
+```
+
+---
+
+## Key Design Principles
+
+1. **File System as Database**
+   - All data stored in JSON files
+   - No database server needed
+   - Human-readable, git-friendly
+
+2. **Menu-Driven Interface**
+   - Consistent menu patterns
+   - Real data-backed lists
+   - No placeholders or stubs
+
+3. **Engine Agnostic**
+   - Works with any AI engine
+   - Pluggable adapter system
+   - Context injection per engine
+
+4. **Security First**
+   - Encrypted API keys
+   - No secrets in logs
+   - Local-only data storage
+
+5. **Extensible**
+   - Easy to add new entities
+   - Plugin system for engines
+   - Template-based projects
+
+---
+
+## Creator Version (POPPY-MAXIM)
+
+The private creator version adds:
+
+```
+┌─────────────────────────────────────────┐
+│  ⚙️  System Menu (Creator Version)       │
+├─────────────────────────────────────────┤
+│  📊 Analytics (Personal)                │
+│  👑 Creator Dashboard ← EXTRA!          │
+│  ⚙️  Settings                            │
+│  📅 Daily Focus                          │
+│  📋 View Log                             │
+│  🤖 Agent Settings                       │
+└─────────────────────────────────────────┘
+```
+
+**Creator Dashboard Features:**
+- Global POPPY usage statistics
+- Model popularity tracking
+- Feature usage analytics
+- Geographic distribution
+- Real user metrics (privacy-respecting)
+
+---
+
+## Version History
+
+- **v1.0** - Initial release
+- **v1.1** - Fixed list views for Projects, Agents, Skills, Prompts
+- **v1.2** - Added Creator Dashboard (private version)
+
+---
+
+## Contributing
+
+See [WORKFLOW.md](../WORKFLOW.md) for development guidelines.
+
+---
+
+**POPPY Architecture** - Designed for simplicity, security, and extensibility.
