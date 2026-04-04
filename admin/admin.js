@@ -90,6 +90,18 @@ function showHeader() {
   console.log('\n' + POPPY_LOGO + '\n');
 }
 
+// 👑 Check if this is the creator version (for analytics)
+function isCreatorVersion() {
+  try {
+    // Check for creator marker file
+    const fs = require('fs');
+    fs.accessSync(path.join(ROOT_DIR, '.creator'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ═══════════════════════════════════════════════════════════
 // 🗂️  MONOREPO STRUCTURE
 // ═══════════════════════════════════════════════════════════
