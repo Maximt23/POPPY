@@ -3928,6 +3928,3 @@ module.exports = { executeFlow };`
   log.info('This skill can now be attached to any agent');
   await pause();
 }
-
-// Make createPowerAutomateSkill available globally
-this.createPowerAutomateSkill = createPowerAutomateSkill;
