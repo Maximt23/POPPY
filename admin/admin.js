@@ -4088,29 +4088,56 @@ attachSkillToAgent = async function() {
   await pause();
 };
 
-// FIX: System menu
+// FIX: System menu WITH ANALYTICS
 async function showSystemMenu() {
   showHeader();
   log.title('⚙️ System');
+  
+  // Different menu for creator vs user
+  const isCreator = await isCreatorVersion();
+  
+  const choices = [
+    { name: theme.info('📊 Analytics'), value: 'analytics' },
+    { name: theme.info('📈 Status'), value: 'status' },
+    new inquirer.Separator(),
+    { name: theme.dim('← Back'), value: 'back' }
+  ];
+  
+  // Add creator-only option
+  if (isCreator) {
+    choices.splice(1, 0, { 
+      name: theme.accent('👑 Creator Dashboard'), 
+      value: 'creator' 
+    });
+  }
   
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
     message: theme.accent('Options:'),
-    choices: [
-      { name: '📊 Status', value: 'status' },
-      { name: theme.dim('← Back'), value: 'back' }
-    ]
+    choices,
+    pageSize: 10
   }]);
   
-  if (action === 'back') return;
-  
-  if (action === 'status') {
-    const projects = await loadProjects();
-    const agents = await loadAgents();
-    log.success(`Projects: ${projects.length}`);
-    log.success(`Agents: ${agents.length}`);
-    await pause();
+  switch (action) {
+    case 'analytics':
+      await showUserAnalytics();
+      return await showSystemMenu();
+    
+    case 'creator':
+      await showCreatorAnalytics();
+      return await showSystemMenu();
+    
+    case 'status':
+      const projects = await loadProjects();
+      const agents = await loadAgents();
+      log.success(`Projects: ${projects.length}`);
+      log.success(`Agents: ${agents.length}`);
+      await pause();
+      return await showSystemMenu();
+    
+    case 'back':
+      return;
   }
 };
 
