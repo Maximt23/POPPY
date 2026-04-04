@@ -6321,3 +6321,43 @@ const fsSync = {
   accessSync: (...args) => require('fs').accessSync(...args)
 };
 } 
+// Helper: Load skills
+async function loadSkills() {
+  try {
+    const skillsDir = path.join(DATA_DIR, 'skills');
+    const files = await fs.readdir(skillsDir);
+    const skills = [];
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(path.join(skillsDir, file), 'utf8');
+          skills.push(JSON.parse(content));
+        } catch {}
+      }
+    }
+    return skills;
+  } catch {
+    return [];
+  }
+}
+
+
+// Helper: Load marketplace items
+async function loadMarketplaceItems(type) {
+  try {
+    const marketDir = path.join(DATA_DIR, 'marketplace', type);
+    const files = await fs.readdir(marketDir);
+    const items = [];
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(path.join(marketDir, file), 'utf8');
+          items.push(JSON.parse(content));
+        } catch {}
+      }
+    }
+    return items;
+  } catch {
+    return [];
+  }
+}
