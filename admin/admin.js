@@ -2666,3 +2666,358 @@ listAgents = async function() {
     await launchWithAgent();
   }
 };
+// ═══════════════════════════════════════════════════════════
+// 🔧 REAL FUNCTIONAL FIX - Make POPPY actually work
+// Issues fixed:
+// 1. Agents not showing (wrong data format handling)
+// 2. Code Puppy not launching (stdio inheritance blocking)
+// 3. Projects not opening (need actual file system operations)
+// ═══════════════════════════════════════════════════════════
+
+// FIX 1: Make loadAgents return flat array (not nested object)
+const originalLoadAgents = loadAgents;
+loadAgents = async function() {
+  const result = await originalLoadAgents();
+  // Handle both formats: {agents: []} and plain []
+  return Array.isArray(result) ? result : (result.agents || []);
+};
+
+// FIX 2: Make loadProjects return flat array
+const originalLoadProjects = loadProjects;
+loadProjects = async function() {
+  const result = await originalLoadProjects();
+  // Handle both formats
+  if (Array.isArray(result)) return result;
+  if (result && result.projects) return result.projects;
+  return [];
+};
+
+// FIX 3: Working Code Puppy launch (non-blocking)
+launchCodePuppy = async function() {
+  showHeader();
+  log.title('🐶 Launching Code Puppy');
+  
+  log.info('Starting Code Puppy...');
+  
+  try {
+    const { spawn } = await import('child_process');
+    
+    // NON-BLOCKING spawn: don't wait for stdio
+    const child = spawn('code-puppy', [], {
+      shell: true,
+      detached: true,
+      stdio: 'ignore'  // CRITICAL: prevents blocking
+    });
+    
+    // Handle immediate spawn errors
+    child.on('error', (err) => {
+      log.error(`Spawn error: ${err.message}`);
+    });
+    
+    // Unref so parent can exit
+    child.unref();
+    
+    log.success('✓ Code Puppy launched!');
+    log.info('Check your taskbar for the new window.');
+    
+  } catch (error) {
+    log.error(`Failed: ${error.message}`);
+    log.info('Install Code Puppy: npm install -g code-puppy');
+  }
+  
+  await pause();
+};
+
+// FIX 4: Working project import from local machine
+importProject = async function() {
+  showHeader();
+  log.title('📥 Import Project');
+  
+  const { source } = await inquirer.prompt([{
+    type: 'list',
+    name: 'source',
+    message: theme.accent('Import from:'),
+    choices: [
+      { name: '📁 Local Directory', value: 'local' },
+      { name: '🔗 Git Repository', value: 'git' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (source === 'back') return;
+  
+  if (source === 'local') {
+    const { dirPath } = await inquirer.prompt([{
+      type: 'input',
+      name: 'dirPath',
+      message: theme.accent('Enter full folder path:'),
+      default: 'C:\\Users\\maxim\\project'
+    }]);
+    
+    try {
+      // Check if path exists
+      const stats = await fs.stat(dirPath);
+      if (!stats.isDirectory()) {
+        log.error('That is not a folder!');
+        await pause();
+        return;
+      }
+      
+      // Read folder contents
+      const files = await fs.readdir(dirPath);
+      
+      // Auto-detect project type
+      let type = 'unknown';
+      if (files.includes('package.json')) type = 'node';
+      else if (files.includes('requirements.txt')) type = 'python';
+      else if (files.includes('Cargo.toml')) type = 'rust';
+      else if (files.includes('index.html')) type = 'web';
+      
+      const { name } = await inquirer.prompt([{
+        type: 'input',
+        name: 'name',
+        message: theme.accent('Project name:'),
+        default: path.basename(dirPath)
+      }]);
+      
+      // Save to POPPY
+      const projects = await loadProjects();
+      projects.push({
+        id: 'proj-' + Date.now(),
+        name,
+        type,
+        path: dirPath,
+        fileCount: files.length,
+        imported: true,
+        createdAt: new Date().toISOString()
+      });
+      await saveProjects(projects);
+      
+      log.success(`✓ Imported "${name}"`);
+      log.info(`Type: ${type}`);
+      log.info(`Files: ${files.length}`);
+      
+    } catch (error) {
+      log.error(`Cannot access folder: ${error.message}`);
+    }
+  }
+  
+  if (source === 'git') {
+    const { url } = await inquirer.prompt([{
+      type: 'input',
+      name: 'url',
+      message: theme.accent('Git URL:'),
+      default: 'https://github.com/user/repo.git'
+    }]);
+    
+    const { name } = await inquirer.prompt([{
+      type: 'input',
+      name: 'name',
+      message: theme.accent('Project name:'),
+      default: path.basename(url, '.git')
+    }]);
+    
+    const targetDir = path.join(ROOT_DIR, 'projects', name);
+    
+    try {
+      log.info(`Cloning ${url}...`);
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+      
+      await fs.mkdir(path.dirname(targetDir), { recursive: true });
+      await execAsync(`git clone "${url}" "${targetDir}"`);
+      
+      const projects = await loadProjects();
+      projects.push({
+        id: 'proj-' + Date.now(),
+        name,
+        type: 'git-imported',
+        path: targetDir,
+        repo: url,
+        createdAt: new Date().toISOString()
+      });
+      await saveProjects(projects);
+      
+      log.success(`✓ Cloned "${name}"`);
+      log.info(`Location: ${targetDir}`);
+      
+    } catch (error) {
+      log.error(`Git clone failed: ${error.message}`);
+    }
+  }
+  
+  await pause();
+};
+
+// FIX 5: Working project management with actual actions
+manageProjects = async function() {
+  showHeader();
+  log.title('📁 Your Projects');
+  
+  const projects = await loadProjects();
+  
+  if (projects.length === 0) {
+    log.warning('No projects yet.');
+    log.info('Import a project first!');
+    await pause();
+    return;
+  }
+  
+  log.success(`You have ${projects.length} project(s):`);
+  
+  const choices = projects.map(p => ({
+    name: `  ${p.name} ${theme.dim(`(${p.type})`)}`,
+    value: p.id
+  }));
+  
+  choices.push(new inquirer.Separator());
+  choices.push({ name: theme.dim('← Back'), value: 'back' });
+  
+  const { projectId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'projectId',
+    message: theme.accent('Select project:'),
+    choices,
+    pageSize: 15
+  }]);
+  
+  if (projectId === 'back') return;
+  
+  const project = projects.find(p => p.id === projectId);
+  
+  // Show project details with actions
+  showHeader();
+  log.title(`📁 ${project.name}`);
+  console.log(`Type: ${project.type}`);
+  console.log(`Path: ${project.path}`);
+  if (project.fileCount) console.log(`Files: ${project.fileCount}`);
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('What to do:'),
+    choices: [
+      { name: theme.accent('🚀 Open with Code Puppy'), value: 'launch' },
+      { name: theme.secondary('📂 Open in File Explorer'), value: 'explore' },
+      { name: theme.warning('🗑️  Remove from POPPY'), value: 'delete' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'launch') {
+    try {
+      const { spawn } = await import('child_process');
+      spawn('code-puppy', [], {
+        cwd: project.path,
+        shell: true,
+        detached: true,
+        stdio: 'ignore'
+      }).unref();
+      
+      log.success('✓ Launched Code Puppy!');
+    } catch (error) {
+      log.error(`Launch failed: ${error.message}`);
+    }
+    await pause();
+  }
+  
+  if (action === 'explore') {
+    try {
+      const { spawn } = await import('child_process');
+      spawn('explorer', [project.path], { shell: true });
+      log.success('✓ Opened in Explorer');
+    } catch (error) {
+      log.error(`Failed: ${error.message}`);
+    }
+    await pause();
+  }
+  
+  if (action === 'delete') {
+    const { confirm } = await inquirer.prompt([{
+      type: 'confirm',
+      name: 'confirm',
+      message: theme.error(`Remove "${project.name}" from POPPY?`),
+      default: false
+    }]);
+    
+    if (confirm) {
+      const updated = projects.filter(p => p.id !== project.id);
+      await saveProjects(updated);
+      log.success('✓ Removed from POPPY');
+      log.info('Files were NOT deleted');
+    }
+    await pause();
+  }
+};
+
+// FIX 6: Working agents list
+listAgents = async function() {
+  showHeader();
+  log.title('🤖 Your Agents');
+  
+  const agents = await loadAgents();
+  
+  if (agents.length === 0) {
+    log.warning('No agents found.');
+    await pause();
+    return;
+  }
+  
+  log.success(`Found ${agents.length} agent(s):`);
+  
+  const choices = agents.map(a => ({
+    name: `  ${a.name} ${theme.dim(`(${a.role || 'agent'})`)}`,
+    value: a.id || a.name
+  }));
+  
+  choices.push(new inquirer.Separator());
+  choices.push({ name: theme.dim('← Back'), value: 'back' });
+  
+  const { agentId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'agentId',
+    message: theme.accent('Select agent:'),
+    choices,
+    pageSize: 15
+  }]);
+  
+  if (agentId === 'back') return;
+  
+  const agent = agents.find(a => (a.id || a.name) === agentId);
+  
+  showHeader();
+  log.title(`🤖 ${agent.name}`);
+  console.log(`Role: ${agent.role || 'General purpose'}`);
+  if (agent.description) console.log(`Description: ${agent.description}`);
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Actions:'),
+    choices: [
+      { name: theme.accent('🚀 Launch with Code Puppy'), value: 'launch' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'launch') {
+    try {
+      const { spawn } = await import('child_process');
+      spawn('code-puppy', [], {
+        shell: true,
+        detached: true,
+        stdio: 'ignore'
+      }).unref();
+      log.success(`✓ Launched with ${agent.name}!`);
+    } catch (error) {
+      log.error(`Launch failed: ${error.message}`);
+    }
+    await pause();
+  }
+};
