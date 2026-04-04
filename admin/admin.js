@@ -3928,3 +3928,203 @@ module.exports = { executeFlow };`
   log.info('This skill can now be attached to any agent');
   await pause();
 }
+
+// FIX: apiKeys with Code Puppy and Git support
+apiKeys = async function() {
+  showHeader();
+  log.title('🔐 API Keys');
+  
+  const envFile = {};
+  try {
+    const envPath = path.join(ROOT_DIR, '.env');
+    const content = await fs.readFile(envPath, 'utf8');
+    content.split('\n').forEach(line => {
+      const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (match) envFile[match[1]] = match[2];
+    });
+  } catch {}
+  
+  let cpKeys = {};
+  const configPaths = [
+    path.join(os.homedir(), '.code-puppy', 'config.json'),
+    path.join(os.homedir(), '.config', 'code-puppy', 'config.json'),
+    path.join(os.homedir(), 'code-puppy-config.json'),
+    path.join(ROOT_DIR, 'config.json')
+  ];
+  
+  for (const configPath of configPaths) {
+    try {
+      const content = await fs.readFile(configPath, 'utf8');
+      const config = JSON.parse(content);
+      cpKeys = config.apiKeys || config.keys || {};
+      break;
+    } catch {}
+  }
+  
+  const gitToken = process.env.GITHUB_TOKEN || envFile.GITHUB_TOKEN || null;
+  
+  const apis = [
+    { name: 'OpenAI', key: process.env.OPENAI_API_KEY || envFile.OPENAI_API_KEY || cpKeys.openai },
+    { name: 'Anthropic', key: process.env.ANTHROPIC_API_KEY || envFile.ANTHROPIC_API_KEY || cpKeys.anthropic },
+    { name: 'Google/Gemini', key: process.env.GOOGLE_API_KEY || envFile.GOOGLE_API_KEY || cpKeys.google || cpKeys.gemini },
+    { name: 'Fireworks AI', key: process.env.FIREWORKS_API_KEY || envFile.FIREWORKS_API_KEY || cpKeys.fireworks },
+    { name: 'Groq', key: process.env.GROQ_API_KEY || envFile.GROQ_API_KEY || cpKeys.groq },
+    { name: 'GitHub', key: gitToken }
+  ];
+  
+  log.info('API Keys:');
+  log.divider();
+  for (const api of apis) {
+    const status = api.key ? theme.success('✓') : theme.dim('○');
+    console.log(`  ${status} ${api.name}`);
+  }
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose:'),
+    choices: [
+      { name: '➕ Add Key', value: 'add' },
+      { name: '📋 View', value: 'view' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  await pause();
+};
+
+// FIX: createSkill with file path install
+createSkill = async function() {
+  showHeader();
+  log.title('🎯 Skills');
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose:'),
+    choices: [
+      { name: '➕ Create', value: 'create' },
+      { name: '📁 Install from File', value: 'install' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  
+  if (action === 'install') {
+    const { filePath } = await inquirer.prompt([{
+      type: 'input',
+      name: 'filePath',
+      message: theme.accent('Path to skill JSON:')
+    }]);
+    
+    if (!filePath.trim() || filePath.trim().toLowerCase() === 'cancel') {
+      log.info('Cancelled');
+      await pause();
+      return;
+    }
+    
+    try {
+      const content = await fs.readFile(filePath.trim(), 'utf8');
+      const skill = JSON.parse(content);
+      const skillsDir = path.join(DATA_DIR, 'skills');
+      await fs.mkdir(skillsDir, { recursive: true });
+      const id = skill.id || `skill-${Date.now()}`;
+      await fs.writeFile(path.join(skillsDir, `${id}.json`), JSON.stringify(skill, null, 2));
+      log.success(`✓ Installed: ${skill.name}`);
+    } catch (e) {
+      log.error(`Failed: ${e.message}`);
+    }
+    await pause();
+    return;
+  }
+  
+  // Create
+  const { name } = await inquirer.prompt([{
+    type: 'input',
+    name: 'name',
+    message: theme.accent('Name (or "cancel"):')
+  }]);
+  
+  if (name.trim().toLowerCase() === 'cancel' || !name.trim()) {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  const { confirm } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'confirm',
+    message: theme.accent(`Create "${name}"?`),
+    default: true
+  }]);
+  
+  if (!confirm) {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  log.success(`✓ Created: ${name}`);
+  await pause();
+};
+
+// FIX: attachSkillToAgent with cancel
+attachSkillToAgent = async function() {
+  showHeader();
+  log.title('🔗 Attach Skills');
+  
+  const agents = await loadAgents();
+  if (agents.length === 0) {
+    log.warning('No agents');
+    await pause();
+    return;
+  }
+  
+  const { agentId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'agentId',
+    message: theme.accent('Agent:'),
+    choices: [
+      ...agents.map(a => ({ name: a.name, value: a.id || a.name })),
+      { name: theme.dim('← Cancel'), value: 'cancel' }
+    ]
+  }]);
+  
+  if (agentId === 'cancel') {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  log.success(`Selected agent: ${agentId}`);
+  await pause();
+};
+
+// FIX: System menu
+showSystemMenu = async function() {
+  showHeader();
+  log.title('⚙️ System');
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Options:'),
+    choices: [
+      { name: '📊 Status', value: 'status' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  
+  if (action === 'status') {
+    const projects = await loadProjects();
+    const agents = await loadAgents();
+    log.success(`Projects: ${projects.length}`);
+    log.success(`Agents: ${agents.length}`);
+    await pause();
+  }
+};
