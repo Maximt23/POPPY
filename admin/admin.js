@@ -4111,7 +4111,6 @@ async function showSystemMenu() {
   
   const choices = [
     { name: theme.info('📊 Analytics'), value: 'analytics' },
-    { name: theme.info('📈 Status'), value: 'status' },
     new inquirer.Separator(),
     { name: theme.dim('← Back'), value: 'back' }
   ];
@@ -4139,14 +4138,6 @@ async function showSystemMenu() {
     
     case 'creator':
       await showCreatorAnalytics();
-      return await showSystemMenu();
-    
-    case 'status':
-      const projects = await loadProjects();
-      const agents = await loadAgents();
-      log.success(`Projects: ${projects.length}`);
-      log.success(`Agents: ${agents.length}`);
-      await pause();
       return await showSystemMenu();
     
     case 'back':
@@ -6251,14 +6242,6 @@ async function showSystemMenu() {
     
     case 'creator':
       await showCreatorAnalytics();
-      return await showSystemMenu();
-    
-    case 'status':
-      const projects = await loadProjects();
-      const agents = await loadAgents();
-      log.success(`Projects: ${projects.length}`);
-      log.success(`Agents: ${agents.length}`);
-      await pause();
       return await showSystemMenu();
     
     case 'back':
