@@ -3372,3 +3372,90 @@ attachSkillToAgent = async function() {
   log.success(`✓ Attached ${selected.length} skill(s)`);
   await pause();
 };
+// Fix: Define functions BEFORE they're assigned to variables
+// This prevents ReferenceError due to hoisting issues
+
+// Define marketplace as a function declaration (hoisted)
+async function marketplaceFunc() {
+  showHeader();
+  log.title('🌐 Marketplace');
+  
+  const { type } = await inquirer.prompt([{
+    type: 'list',
+    name: 'type',
+    message: theme.accent('Browse:'),
+    choices: [
+      { name: theme.accent('🎯 Skills'), value: 'skills' },
+      { name: theme.accent('🤖 Agents'), value: 'agents' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (type === 'skills') {
+    showHeader();
+    log.title('🌐 Skill Marketplace');
+    
+    const items = [
+      { name: 'react-patterns', author: 'POPPY', category: 'frontend', installs: 1250 },
+      { name: 'api-design', author: 'Marcus', category: 'backend', installs: 890 },
+      { name: 'testing-strategies', author: 'QA Team', category: 'testing', installs: 650 },
+      { name: 'system-integration', author: 'Marcus', category: 'architecture', installs: 420 },
+      { name: 'security-hardening', author: 'SecOps', category: 'security', installs: 380 }
+    ];
+    
+    log.success('Available skills:');
+    const choices = items.map(s => ({
+      name: `  ${s.name} ${theme.dim(`by ${s.author}`)} ${theme.dim(`(${s.installs} installs)`)}`,
+      value: s.name
+    }));
+    choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
+    
+    const { item } = await inquirer.prompt([{
+      type: 'list',
+      name: 'item',
+      message: theme.accent('Install:'),
+      choices,
+      pageSize: 15
+    }]);
+    
+    if (item !== 'back') {
+      log.success(`✓ Installed "${item}"`);
+    }
+    await pause();
+  }
+  
+  if (type === 'agents') {
+    showHeader();
+    log.title('🌐 Agent Marketplace');
+    
+    const items = [
+      { name: 'Marcus', role: 'Lead Connector', downloads: 520 },
+      { name: 'Alex', role: 'Frontend Specialist', downloads: 480 },
+      { name: 'Sam', role: 'DevOps Engineer', downloads: 340 },
+      { name: 'Jordan', role: 'Security Auditor', downloads: 280 }
+    ];
+    
+    log.success('Available agents:');
+    const choices = items.map(a => ({
+      name: `  ${a.name} ${theme.dim(`(${a.role})`)} ${theme.dim(`(${a.downloads} downloads)`)}`,
+      value: a.name
+    }));
+    choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
+    
+    const { item } = await inquirer.prompt([{
+      type: 'list',
+      name: 'item',
+      message: theme.accent('Download:'),
+      choices,
+      pageSize: 15
+    }]);
+    
+    if (item !== 'back') {
+      log.success(`✓ Downloaded "${item}"`);
+    }
+    await pause();
+  }
+}
+
+// Now assign it to the variable that will be used
+marketplace = marketplaceFunc;
