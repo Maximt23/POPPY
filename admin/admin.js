@@ -3,6 +3,7 @@ import inquirer from 'inquirer';
 import boxen from 'boxen';
 import ora from 'ora';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
@@ -94,14 +95,10 @@ function showHeader() {
 function isCreatorVersion() {
   try {
     // Check for creator marker file
-    const fs = require('fs');
     const creatorPath = path.join(path.dirname(__dirname), '.creator');
-    console.log('DEBUG: Checking for .creator at:', creatorPath);
-    fs.accessSync(creatorPath);
-    console.log('DEBUG: .creator found!');
+    fsSync.accessSync(creatorPath);
     return true;
-  } catch(e) {
-    console.log('DEBUG: .creator not found, error:', e.message);
+  } catch {
     return false;
   }
 }
