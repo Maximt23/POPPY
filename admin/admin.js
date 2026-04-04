@@ -111,6 +111,28 @@ function isCreatorVersion() {
   }
 }
 
+// 🔐 Password protection for poppy-maxim (creator version only)
+const CREATOR_PASSWORD = 'Maratt1961*86';
+
+async function verifyCreatorAccess() {
+  if (!isCreatorVersion()) return true;
+  
+  const { password } = await inquirer.prompt([{
+    type: 'password',
+    name: 'password',
+    message: theme.warning('🔐 Enter creator password:'),
+    mask: '*'
+  }]);
+  
+  if (password !== CREATOR_PASSWORD) {
+    log.error('Invalid password - Access denied');
+    return false;
+  }
+  
+  log.success('Welcome, Creator');
+  return true;
+}
+
 // ═══════════════════════════════════════════════════════════
 // 🗂️  MONOREPO STRUCTURE
 // ═══════════════════════════════════════════════════════════
@@ -485,6 +507,7 @@ async function mainMenu() {
       { name: theme.primary('📁 Projects'), value: 'projects' },
       { name: theme.primary('🤖 Agents'), value: 'agents' },
       { name: theme.primary('🎯 Skills'), value: 'skills' },
+      { name: theme.info('💬 Prompts'), value: 'prompts' },
       { name: theme.info('🔐 API Keys'), value: 'api' },
       { name: theme.warning('🔀 Git'), value: 'git' },
       { name: theme.dim('⚙️  System'), value: 'system' },
@@ -503,6 +526,8 @@ async function mainMenu() {
     case 'projects': action = await showProjectsMenu(); break;
     case 'agents': action = await showAgentsMenu(); break;
     case 'skills': action = await showSkillsMenu(); break;
+    case 'prompts': action = await showPromptsMenu(); break;
+    case 'marketplace': action = await showMarketplaceMenu(); break;
     case 'api': action = await showApiMenu(); break;
     case 'git': action = await showGitMenu(); break;
     case 'system': action = await showSystemMenu(); break;
@@ -4122,11 +4147,15 @@ async function showSystemMenu() {
     { name: theme.info('📊 Analytics'), value: 'analytics' }
   ];
   
-  // Add creator-only option
+  // Add creator-only options
   if (isCreator) {
     choices.push({ 
       name: theme.accent('👑 Creator Dashboard'), 
       value: 'creator' 
+    });
+    choices.push({ 
+      name: theme.accent('🎭 Orchestrator'), 
+      value: 'orchestrator' 
     });
   }
   
@@ -4150,6 +4179,10 @@ async function showSystemMenu() {
     
     case 'creator':
       await showCreatorAnalytics();
+      return await showSystemMenu();
+    
+    case 'orchestrator':
+      await showOrchestratorMenu();
       return await showSystemMenu();
     
     case 'back':
