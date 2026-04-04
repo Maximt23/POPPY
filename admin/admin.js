@@ -2020,19 +2020,40 @@ async function listSkills() {
   showHeader();
   log.title('🎯 My Skills');
   
-  const skillRegistry = { 
-    skills: [
-      { id: '1', name: 'React Patterns', category: 'frontend', description: 'React best practices and patterns' },
-      { id: '2', name: 'API Design', category: 'backend', description: 'RESTful API design principles' },
-      { id: '3', name: 'Testing Strategies', category: 'testing', description: 'Unit and integration testing' }
-    ]
-  };
+  // Load skills from data directory
+  const skillsDir = path.join(DATA_DIR, 'skills');
+  const skills = [];
   
-  log.info('Available skills in your library:');
-  skillRegistry.skills.forEach((skill, i) => {
-    console.log(`  ${i + 1}. ${theme.accent(skill.name)} ${theme.dim(`(${skill.category})`)}`);
-    console.log(`     ${theme.dim(skill.description)}`);
-  });
+  try {
+    const files = await fs.readdir(skillsDir);
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(path.join(skillsDir, file), 'utf8');
+          const skill = JSON.parse(content);
+          skills.push(skill);
+        } catch (e) {
+          // Skip invalid files
+        }
+      }
+    }
+  } catch (e) {
+    // Directory doesn't exist yet
+  }
+  
+  if (skills.length === 0) {
+    log.warning('No skills created yet!');
+    log.info('Use "Create Skill" to add your first skill.');
+  } else {
+    log.success(`You have ${skills.length} skill(s):`);
+    log.divider();
+    skills.forEach((skill, i) => {
+      console.log(`  ${i + 1}. ${theme.accent(skill.name)} ${theme.dim(`(${skill.category})`)}`);
+      console.log(`     ${theme.dim(skill.description || 'No description')}`);
+      console.log(`     ${theme.dim(`File: data/skills/${skill.id}.json`)}`);
+      console.log();
+    });
+  }
   
   log.divider();
   await pause();
@@ -2059,11 +2080,47 @@ async function createSkill() {
       type: 'input',
       name: 'description',
       message: theme.accent('Description:')
+    },
+    {
+      type: 'editor',
+      name: 'content',
+      message: theme.accent('Skill content (knowledge, rules, patterns):'),
+      default: '# Skill Content\n\n## Overview\nDescribe what this skill does...\n\n## Rules\n1. Rule one\n2. Rule two\n\n## Examples\nProvide examples here...'
     }
   ]);
   
-  log.success(`✓ Created skill: ${answers.name}`);
+  // Create skill object
+  const newSkill = {
+    id: `skill-${Date.now()}`,
+    name: answers.name.trim(),
+    category: answers.category.toLowerCase(),
+    description: answers.description.trim(),
+    content: answers.content,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    usageCount: 0,
+    attachedTo: []
+  };
+  
+  // Save to file
+  const skillsDir = path.join(DATA_DIR, 'skills');
+  await fs.mkdir(skillsDir, { recursive: true });
+  
+  const safeName = answers.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const filename = `${safeName}-${newSkill.id.slice(-6)}.json`;
+  
+  await fs.writeFile(
+    path.join(skillsDir, filename),
+    JSON.stringify(newSkill, null, 2)
+  );
+  
+  log.divider();
+  log.success(`✓ Skill "${answers.name}" created!`);
+  log.agent(`ID: ${newSkill.id}`);
   log.info(`Category: ${answers.category}`);
+  log.info(`Saved to: data/skills/${filename}`);
+  log.divider();
+  
   await pause();
 }
 
