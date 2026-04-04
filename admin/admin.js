@@ -4133,7 +4133,7 @@ async function showSystemMenu() {
   choices.push(new inquirer.Separator());
   choices.push({ name: theme.dim('← Back'), value: 'back' });
   
-  console.log('DEBUG: choices =', JSON.stringify(choices.map(c => c.value || c.constructor.name)));
+
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
@@ -4141,7 +4141,7 @@ async function showSystemMenu() {
     choices,
     pageSize: 10
   }]);
-  console.log('DEBUG: selected action =', action);
+
   
   switch (action) {
     case 'analytics':
