@@ -732,7 +732,18 @@ async function viewTodayLog() {
   }
 
   log.divider();
-  await pause();
+  
+  // Explicit back option
+  const { goBack } = await inquirer.prompt([{
+    type: 'list',
+    name: 'goBack',
+    message: theme.dim('Select:'),
+    choices: [
+      { name: theme.dim('← Back to Menu'), value: 'back' }
+    ]
+  }]);
+  
+  return goBack;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -771,7 +782,18 @@ async function listAgents() {
   }
 
   log.divider();
-  await pause();
+  
+  // Explicit back option
+  const { goBack } = await inquirer.prompt([{
+    type: 'list',
+    name: 'goBack',
+    message: theme.dim('Select:'),
+    choices: [
+      { name: theme.dim('← Back to Menu'), value: 'back' }
+    ]
+  }]);
+  
+  return goBack;
 }
 
 async function addAgent() {
@@ -1390,18 +1412,23 @@ async function manageProjects() {
 
   const projects = await loadProjects();
   const gitConfig = await loadGitConfig();
-
-  console.log(boxen(
-    projects.projects.map(p => 
-      theme.primary(`📁 ${p.name}`) + '\n' +
-      theme.dim(`   ID: ${p.id}`) + '\n' +
-      theme.dim(`   Path: ${p.path}`) + '\n' +
-      theme.secondary(`   Type: ${p.type}`) + '\n' +
-      theme.accent(`   Status: ${p.active ? 'Active' : 'Inactive'}`) +
-      (p.gitInitialized ? '\n' + theme.accent('   ✓ Git initialized') : '')
-    ).join('\n\n'),
-    { padding: 1, borderStyle: 'round', borderColor: '#22c55e' }
-  ));
+  
+  if (!projects.projects || projects.projects.length === 0) {
+    log.warning('No projects found!');
+    log.info('Use "Create New Project" to add your first project.');
+  } else {
+    console.log(boxen(
+      projects.projects.map(p => 
+        theme.primary(`📁 ${p.name}`) + '\n' +
+        theme.dim(`   ID: ${p.id}`) + '\n' +
+        theme.dim(`   Path: ${p.path}`) + '\n' +
+        theme.secondary(`   Type: ${p.type}`) + '\n' +
+        theme.accent(`   Status: ${p.active ? 'Active' : 'Inactive'}`) +
+        (p.gitInitialized ? '\n' + theme.accent('   ✓ Git initialized') : '')
+      ).join('\n\n'),
+      { padding: 1, borderStyle: 'round', borderColor: '#22c55e' }
+    ));
+  }
 
   log.divider();
   
@@ -1415,7 +1442,18 @@ async function manageProjects() {
   }
   
   log.divider();
-  await pause();
+  
+  // Explicit back option
+  const { goBack } = await inquirer.prompt([{
+    type: 'list',
+    name: 'goBack',
+    message: theme.dim('Select:'),
+    choices: [
+      { name: theme.dim('← Back to Menu'), value: 'back' }
+    ]
+  }]);
+  
+  return goBack;
 }
 
 async function selectAndSyncProjectToGit() {
@@ -1958,22 +1996,37 @@ async function listSkills() {
   showHeader();
   log.title('🎯 My Skills');
   
-  const skillRegistry = { 
-    skills: [
-      { id: '1', name: 'React Patterns', category: 'frontend', description: 'React best practices and patterns' },
-      { id: '2', name: 'API Design', category: 'backend', description: 'RESTful API design principles' },
-      { id: '3', name: 'Testing Strategies', category: 'testing', description: 'Unit and integration testing' }
-    ]
-  };
+  const skills = await loadSkills();
   
-  log.info('Available skills in your library:');
-  skillRegistry.skills.forEach((skill, i) => {
-    console.log(`  ${i + 1}. ${theme.accent(skill.name)} ${theme.dim(`(${skill.category})`)}`);
-    console.log(`     ${theme.dim(skill.description)}`);
-  });
+  if (skills.length === 0) {
+    log.warning('No skills in your library yet!');
+    log.info('Use "Create Skill" to add your first skill.');
+  } else {
+    log.success(`Total skills: ${skills.length}`);
+    log.divider();
+    
+    skills.forEach((skill, i) => {
+      const category = skill.category ? theme.dim(`(${skill.category})`) : '';
+      console.log(`  ${i + 1}. ${theme.accent(skill.name)} ${category}`);
+      if (skill.description) {
+        console.log(`     ${theme.dim(skill.description)}`);
+      }
+    });
+  }
   
   log.divider();
-  await pause();
+  
+  // Explicit back option
+  const { goBack } = await inquirer.prompt([{
+    type: 'list',
+    name: 'goBack',
+    message: theme.dim('Select:'),
+    choices: [
+      { name: theme.dim('← Back to Menu'), value: 'back' }
+    ]
+  }]);
+  
+  return goBack;
 }
 
 async function createSkill() {
@@ -5791,6 +5844,7 @@ showProjectsMenu = async function() {
       return await showProjectsMenu();
     
     case 'list':
+    case 'open':
       await manageProjects();
       return await showProjectsMenu();
     
@@ -5997,18 +6051,48 @@ async function saveItem(type, item) {
 
 // Stub functions for original handlers - cleaned up debug output
 async function handleOriginalAgentAction(action) {
-  // Call actual implementation
-  return await showAgentsMenu();
+  switch (action) {
+    case 'list':
+      await listAgents();
+      return await showAgentsMenu();
+    case 'create':
+      await addAgent();
+      return await showAgentsMenu();
+    case 'delete':
+      await deleteAgentPrompt();
+      return await showAgentsMenu();
+    default:
+      return await showAgentsMenu();
+  }
 }
 
 async function handleOriginalSkillAction(action) {
-  // Call actual implementation
-  return await showSkillsMenu();
+  switch (action) {
+    case 'list':
+      await listSkills();
+      return await showSkillsMenu();
+    case 'create':
+      await createSkill();
+      return await showSkillsMenu();
+    case 'delete':
+      await deleteSkillPrompt();
+      return await showSkillsMenu();
+    default:
+      return await showSkillsMenu();
+  }
 }
 
 async function handleOriginalProjectAction(action) {
-  // Call actual implementation
-  return await showProjectsMenu();
+  switch (action) {
+    case 'list':
+      await manageProjects();
+      return await showProjectsMenu();
+    case 'create':
+      await createNewProject();
+      return await showProjectsMenu();
+    default:
+      return await showProjectsMenu();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
