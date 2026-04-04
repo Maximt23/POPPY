@@ -5271,3 +5271,670 @@ mainMenu = async function() {
   if (action === 'back') return await mainMenu();
   return action;
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🛒 MARKETPLACE UPLOAD & AUTO-SYNC FEATURES
+// 1. Upload to Marketplace from Agents/Skills/Prompts/Projects
+// 2. Auto-pull from AI engines (Code Puppy, etc.)
+// ═══════════════════════════════════════════════════════════
+
+// Helper: Upload item to marketplace
+async function uploadToMarketplace(type, item) {
+  showHeader();
+  log.title(`📤 Upload ${type} to Marketplace`);
+  
+  log.info(`Preparing to upload: ${item.name || item.id}`);
+  log.divider();
+  
+  // Prepare metadata
+  const { description, tags, isPublic } = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'description',
+      message: theme.accent('Description (what this does):'),
+      default: item.description || ''
+    },
+    {
+      type: 'input',
+      name: 'tags',
+      message: theme.accent('Tags (comma-separated):'),
+      default: item.tags?.join(', ') || ''
+    },
+    {
+      type: 'confirm',
+      name: 'isPublic',
+      message: theme.accent('Make publicly available?'),
+      default: true
+    }
+  ]);
+  
+  // Create marketplace package
+  const packageData = {
+    type: type,
+    id: item.id || `${type}-${Date.now()}`,
+    name: item.name,
+    description: description,
+    tags: tags.split(',').map(t => t.trim()).filter(t => t),
+    author: await getOwnerInfo(),
+    createdAt: new Date().toISOString(),
+    content: item,
+    isPublic: isPublic
+  };
+  
+  // Save to local marketplace (for now)
+  // Future: Upload to GitHub/registry
+  try {
+    const marketDir = path.join(DATA_DIR, 'marketplace', type + 's');
+    await fs.mkdir(marketDir, { recursive: true });
+    
+    const filename = `${packageData.id}.json`;
+    await fs.writeFile(
+      path.join(marketDir, filename),
+      JSON.stringify(packageData, null, 2)
+    );
+    
+    log.success(`✓ Uploaded to local marketplace: ${item.name}`);
+    log.info(`Location: marketplace/${type}s/${filename}`);
+    log.info('');
+    log.info('Future: Will sync to GitHub marketplace');
+    
+  } catch (e) {
+    log.error(`Failed to upload: ${e.message}`);
+  }
+  
+  await pause();
+}
+
+// Helper: Get owner info from USER-CONFIG
+async function getOwnerInfo() {
+  try {
+    const configPath = path.join(ROOT_DIR, 'USER-CONFIG.md');
+    const content = await fs.readFile(configPath, 'utf8');
+    
+    const nameMatch = content.match(/\*\*Name:\*\*\s*(.+)/);
+    const usernameMatch = content.match(/\*\*Username:\*\*\s*(.+)/);
+    
+    return {
+      name: nameMatch ? nameMatch[1].trim() : 'Anonymous',
+      username: usernameMatch ? usernameMatch[1].trim() : 'unknown',
+      source: 'POPPY Personal'
+    };
+  } catch {
+    return {
+      name: 'Anonymous',
+      username: 'unknown',
+      source: 'POPPY'
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🤖 ENHANCED AGENTS MENU with Upload
+// ═══════════════════════════════════════════════════════════
+
+showAgentsMenu = async function() {
+  showHeader();
+  log.title('🤖 Agents');
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose action:'),
+    choices: [
+      { name: theme.accent('➕ Create Agent'), value: 'create' },
+      { name: theme.secondary('📁 My Agents'), value: 'list' },
+      { name: theme.info('🔄 Sync from AI Engines'), value: 'sync' },
+      { name: theme.accent('📤 Upload to Marketplace'), value: 'upload' },
+      { name: theme.warning('🗑️  Delete'), value: 'delete' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 12
+  }]);
+  
+  switch (action) {
+    case 'upload':
+      const myAgents = await loadAgents();
+      if (myAgents.length === 0) {
+        log.warning('No agents to upload. Create one first.');
+        await pause();
+        return await showAgentsMenu();
+      }
+      
+      const { agentToUpload } = await inquirer.prompt([{
+        type: 'list',
+        name: 'agentToUpload',
+        message: theme.accent('Select agent to upload:'),
+        choices: [
+          ...myAgents.map(a => ({ name: `${a.name} (${a.model || 'default'})`, value: a })),
+          new inquirer.Separator(),
+          { name: theme.dim('← Cancel'), value: 'cancel' }
+        ]
+      }]);
+      
+      if (agentToUpload !== 'cancel') {
+        await uploadToMarketplace('agent', agentToUpload);
+      }
+      return await showAgentsMenu();
+    
+    case 'sync':
+      await syncFromEngines('agents');
+      return await showAgentsMenu();
+    
+    case 'back':
+      return 'back';
+    
+    default:
+      // Fall through to original handlers
+      return await handleOriginalAgentAction(action);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🎯 ENHANCED SKILLS MENU with Upload
+// ═══════════════════════════════════════════════════════════
+
+showSkillsMenu = async function() {
+  showHeader();
+  log.title('🎯 Skills');
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose action:'),
+    choices: [
+      { name: theme.accent('➕ Create Skill'), value: 'create' },
+      { name: theme.secondary('📁 Install from File'), value: 'install' },
+      { name: theme.info('📋 My Skills'), value: 'list' },
+      { name: theme.accent('🔗 Attach to Agent'), value: 'attach' },
+      { name: theme.info('🔄 Sync from AI Engines'), value: 'sync' },
+      { name: theme.accent('📤 Upload to Marketplace'), value: 'upload' },
+      { name: theme.warning('🗑️  Delete'), value: 'delete' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 12
+  }]);
+  
+  switch (action) {
+    case 'upload':
+      const mySkills = await loadSkills();
+      if (mySkills.length === 0) {
+        log.warning('No skills to upload. Create one first.');
+        await pause();
+        return await showSkillsMenu();
+      }
+      
+      const { skillToUpload } = await inquirer.prompt([{
+        type: 'list',
+        name: 'skillToUpload',
+        message: theme.accent('Select skill to upload:'),
+        choices: [
+          ...mySkills.map(s => ({ name: s.name, value: s })),
+          new inquirer.Separator(),
+          { name: theme.dim('← Cancel'), value: 'cancel' }
+        ]
+      }]);
+      
+      if (skillToUpload !== 'cancel') {
+        await uploadToMarketplace('skill', skillToUpload);
+      }
+      return await showSkillsMenu();
+    
+    case 'sync':
+      await syncFromEngines('skills');
+      return await showSkillsMenu();
+    
+    case 'back':
+      return 'back';
+    
+    default:
+      return await handleOriginalSkillAction(action);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 💬 ENHANCED PROMPTS MENU with Upload
+// ═══════════════════════════════════════════════════════════
+
+showPromptsMenu = async function() {
+  showHeader();
+  log.title('💬 Prompts');
+  log.info('Manage your prompt templates and patterns');
+  log.divider();
+
+  const prompts = await loadPrompts();
+
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose action:'),
+    choices: [
+      { name: theme.accent('➕ Create Prompt'), value: 'create' },
+      { name: theme.secondary('📁 My Prompts'), value: 'list' },
+      { name: theme.info('🔗 Attach to Agent'), value: 'attach' },
+      { name: theme.info('🔄 Sync from AI Engines'), value: 'sync' },
+      { name: theme.accent('📤 Upload to Marketplace'), value: 'upload' },
+      { name: theme.warning('🗑️  Delete'), value: 'delete' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 12
+  }]);
+
+  switch (action) {
+    case 'upload':
+      if (prompts.length === 0) {
+        log.warning('No prompts to upload. Create one first.');
+        await pause();
+        return await showPromptsMenu();
+      }
+      
+      const { promptToUpload } = await inquirer.prompt([{
+        type: 'list',
+        name: 'promptToUpload',
+        message: theme.accent('Select prompt to upload:'),
+        choices: [
+          ...prompts.map(p => ({ name: p.name, value: p })),
+          new inquirer.Separator(),
+          { name: theme.dim('← Cancel'), value: 'cancel' }
+        ]
+      }]);
+      
+      if (promptToUpload !== 'cancel') {
+        await uploadToMarketplace('prompt', promptToUpload);
+      }
+      return await showPromptsMenu();
+    
+    case 'sync':
+      await syncFromEngines('prompts');
+      return await showPromptsMenu();
+    
+    case 'create':
+      const { name } = await inquirer.prompt([{
+        type: 'input',
+        name: 'name',
+        message: theme.accent('Prompt name (or "cancel"):')
+      }]);
+      
+      if (!name.trim() || name.trim().toLowerCase() === 'cancel') {
+        log.info('Cancelled');
+        await pause();
+        return await showPromptsMenu();
+      }
+      
+      const { template } = await inquirer.prompt([{
+        type: 'editor',
+        name: 'template',
+        message: theme.accent('Enter prompt template:'),
+        default: 'You are a helpful assistant.\n\nContext: {{context}}\n\nTask: {{task}}'
+      }]);
+      
+      try {
+        const promptsDir = path.join(DATA_DIR, 'prompts');
+        await fs.mkdir(promptsDir, { recursive: true });
+        
+        const promptData = {
+          id: `prompt-${Date.now()}`,
+          name: name.trim(),
+          template: template,
+          variables: extractVariables(template),
+          createdAt: new Date().toISOString()
+        };
+        
+        await fs.writeFile(
+          path.join(promptsDir, `${promptData.id}.json`),
+          JSON.stringify(promptData, null, 2)
+        );
+        
+        log.success(`✓ Created prompt: ${name}`);
+      } catch (e) {
+        log.error(`Failed: ${e.message}`);
+      }
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'list':
+      if (prompts.length === 0) {
+        log.warning('No prompts created yet');
+      } else {
+        log.success(`Your prompts (${prompts.length}):`);
+        for (const p of prompts) {
+          console.log(`  ${theme.accent('•')} ${p.name}`);
+        }
+      }
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'attach':
+      log.info('Attach prompt to agent...');
+      log.warning('Feature coming soon');
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'delete':
+      if (prompts.length === 0) {
+        log.warning('No prompts to delete');
+        await pause();
+        return await showPromptsMenu();
+      }
+      
+      const { toDelete } = await inquirer.prompt([{
+        type: 'list',
+        name: 'toDelete',
+        message: theme.warning('Select prompt to delete:'),
+        choices: [
+          ...prompts.map(p => ({ name: p.name, value: p.id })),
+          new inquirer.Separator(),
+          { name: theme.dim('← Cancel'), value: 'cancel' }
+        ]
+      }]);
+      
+      if (toDelete === 'cancel') return await showPromptsMenu();
+      
+      const { confirm } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'confirm',
+        message: theme.warning('Delete this prompt?'),
+        default: false
+      }]);
+      
+      if (confirm) {
+        try {
+          await fs.unlink(path.join(DATA_DIR, 'prompts', `${toDelete}.json`));
+          log.success('✓ Prompt deleted');
+        } catch (e) {
+          log.error(`Failed: ${e.message}`);
+        }
+      }
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'back':
+      return 'back';
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 📁 ENHANCED PROJECTS MENU with Upload
+// ═══════════════════════════════════════════════════════════
+
+showProjectsMenu = async function() {
+  showHeader();
+  log.title('📁 Projects');
+  
+  const projects = await loadProjects();
+  const agents = await loadAgents();
+  
+  log.info(`${projects.length} projects | ${agents.length} agents ready`);
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose action:'),
+    choices: [
+      { name: theme.accent('➕ Create New Project'), value: 'create' },
+      { name: theme.secondary('📂 Open Project'), value: 'open' },
+      { name: theme.info('🔄 Sync from AI Engines'), value: 'sync' },
+      { name: theme.accent('📤 Upload to Marketplace'), value: 'upload' },
+      { name: theme.warning('🗑️  Delete Project'), value: 'delete' },
+      { name: theme.info('📊 Status'), value: 'status' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 12
+  }]);
+  
+  switch (action) {
+    case 'upload':
+      if (projects.length === 0) {
+        log.warning('No projects to upload. Create one first.');
+        await pause();
+        return await showProjectsMenu();
+      }
+      
+      const { projectToUpload } = await inquirer.prompt([{
+        type: 'list',
+        name: 'projectToUpload',
+        message: theme.accent('Select project to upload as template:'),
+        choices: [
+          ...projects.map(p => ({ name: p.name, value: p })),
+          new inquirer.Separator(),
+          { name: theme.dim('← Cancel'), value: 'cancel' }
+        ]
+      }]);
+      
+      if (projectToUpload !== 'cancel') {
+        // For projects, we create a template version (without personal files)
+        const templateVersion = {
+          ...projectToUpload,
+          name: `[Template] ${projectToUpload.name}`,
+          isTemplate: true,
+          files: [] // Would list template files only
+        };
+        await uploadToMarketplace('project', templateVersion);
+      }
+      return await showProjectsMenu();
+    
+    case 'sync':
+      await syncFromEngines('projects');
+      return await showProjectsMenu();
+    
+    case 'back':
+      return 'back';
+    
+    default:
+      return await handleOriginalProjectAction(action);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🔄 SYNC FROM AI ENGINES (Code Puppy, etc.)
+// ═══════════════════════════════════════════════════════════
+
+async function syncFromEngines(type) {
+  showHeader();
+  log.title(`🔄 Sync ${type} from AI Engines`);
+  
+  const engines = await detectEngines();
+  const syncResults = {
+    imported: [],
+    skipped: [],
+    errors: []
+  };
+  
+  for (const engine of engines) {
+    log.info(`Checking ${engine.name}...`);
+    
+    try {
+      const items = await pullFromEngine(engine, type);
+      
+      for (const item of items) {
+        try {
+          const exists = await checkIfExists(type, item.id || item.name);
+          
+          if (!exists) {
+            await saveItem(type, item);
+            syncResults.imported.push({
+              name: item.name || item.id,
+              source: engine.name
+            });
+            log.success(`  ✓ Imported: ${item.name || item.id}`);
+          } else {
+            syncResults.skipped.push({
+              name: item.name || item.id,
+              source: engine.name
+            });
+          }
+        } catch (e) {
+          syncResults.errors.push({
+            name: item.name || item.id,
+            error: e.message
+          });
+        }
+      }
+    } catch (e) {
+      log.warning(`  Could not sync from ${engine.name}: ${e.message}`);
+    }
+  }
+  
+  log.divider();
+  log.success(`Sync complete!`);
+  log.info(`Imported: ${syncResults.imported.length}`);
+  log.info(`Skipped (already exists): ${syncResults.skipped.length}`);
+  if (syncResults.errors.length > 0) {
+    log.warning(`Errors: ${syncResults.errors.length}`);
+  }
+  
+  if (syncResults.imported.length > 0) {
+    log.info('');
+    log.info('Imported from:');
+    for (const item of syncResults.imported) {
+      console.log(`  ${theme.accent('•')} ${item.name} [${item.source}]`);
+    }
+  }
+  
+  await pause();
+}
+
+// Detect connected AI engines
+async function detectEngines() {
+  const engines = [];
+  const { homedir } = await import('os');
+  
+  // Check for Code Puppy
+  const codePuppyPath = path.join(homedir(), '.code_puppy');
+  if (await fs.access(codePuppyPath).then(() => true).catch(() => false)) {
+    engines.push({
+      name: 'Code Puppy',
+      path: codePuppyPath,
+      type: 'code-puppy'
+    });
+  }
+  
+  // Check for other engines (future)
+  // engines.push({ name: 'Other Engine', ... });
+  
+  return engines;
+}
+
+// Pull items from specific engine
+async function pullFromEngine(engine, type) {
+  const items = [];
+  
+  if (engine.type === 'code-puppy') {
+    switch (type) {
+      case 'agents':
+        // Pull from Code Puppy agents folder
+        const agentsPath = path.join(engine.path, 'agents');
+        try {
+          const files = await fs.readdir(agentsPath);
+          for (const file of files) {
+            if (file.endsWith('.json')) {
+              const content = await fs.readFile(path.join(agentsPath, file), 'utf8');
+              const agent = JSON.parse(content);
+              items.push({
+                id: `cp-${agent.id || file.replace('.json', '')}`,
+                name: agent.name || file.replace('.json', ''),
+                ...agent,
+                source: 'code-puppy'
+              });
+            }
+          }
+        } catch {}
+        break;
+      
+      case 'skills':
+        // Pull from Code Puppy skills folder
+        const skillsPath = path.join(engine.path, 'skills');
+        try {
+          const files = await fs.readdir(skillsPath);
+          for (const file of files) {
+            if (file.endsWith('.json') || file.endsWith('.md')) {
+              const content = await fs.readFile(path.join(skillsPath, file), 'utf8');
+              items.push({
+                id: `cp-skill-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                name: file.replace(/\.(json|md)$/, ''),
+                content: content,
+                type: file.endsWith('.md') ? 'markdown' : 'json',
+                source: 'code-puppy'
+              });
+            }
+          }
+        } catch {}
+        break;
+      
+      case 'prompts':
+        // Check for prompts in Code Puppy
+        const promptsPath = path.join(engine.path, 'prompts');
+        try {
+          const files = await fs.readdir(promptsPath);
+          for (const file of files) {
+            if (file.endsWith('.json') || file.endsWith('.txt')) {
+              const content = await fs.readFile(path.join(promptsPath, file), 'utf8');
+              items.push({
+                id: `cp-prompt-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                name: file.replace(/\.(json|txt)$/, ''),
+                template: content,
+                source: 'code-puppy'
+              });
+            }
+          }
+        } catch {}
+        break;
+    }
+  }
+  
+  return items;
+}
+
+// Helper: Check if item exists
+async function checkIfExists(type, id) {
+  try {
+    let checkPath;
+    switch (type) {
+      case 'agents':
+        checkPath = path.join(DATA_DIR, 'agents', `${id}.json`);
+        break;
+      case 'skills':
+        checkPath = path.join(DATA_DIR, 'skills', `${id}.json`);
+        break;
+      case 'prompts':
+        checkPath = path.join(DATA_DIR, 'prompts', `${id}.json`);
+        break;
+      default:
+        return false;
+    }
+    await fs.access(checkPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Helper: Save imported item
+async function saveItem(type, item) {
+  const dir = path.join(DATA_DIR, type);
+  await fs.mkdir(dir, { recursive: true });
+  
+  const filename = `${item.id}.json`;
+  await fs.writeFile(path.join(dir, filename), JSON.stringify(item, null, 2));
+}
+
+// Stub functions for original handlers
+async function handleOriginalAgentAction(action) {
+  // This would call the original agent menu logic
+  log.info(`Original action: ${action}`);
+  await pause();
+}
+
+async function handleOriginalSkillAction(action) {
+  log.info(`Original action: ${action}`);
+  await pause();
+}
+
+async function handleOriginalProjectAction(action) {
+  log.info(`Original action: ${action}`);
+  await pause();
+}
