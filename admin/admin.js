@@ -6214,54 +6214,6 @@ async function showCreatorAnalytics() {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🔄 ENHANCED SYSTEM MENU with Analytics
-// ═══════════════════════════════════════════════════════════
-
-async function showSystemMenu() {
-  showHeader();
-  log.title('⚙️ System');
-  
-  // Different menu for creator vs user
-  const isCreator = isCreatorVersion();
-  
-  const choices = [
-    { name: theme.info('📊 Analytics'), value: 'analytics' },
-    { name: theme.info('📈 Status'), value: 'status' },
-    new inquirer.Separator(),
-    { name: theme.dim('← Back'), value: 'back' }
-  ];
-  
-  // Add creator-only option
-  if (isCreator) {
-    choices.splice(1, 0, { 
-      name: theme.accent('👑 Creator Dashboard'), 
-      value: 'creator' 
-    });
-  }
-  
-  const { action } = await inquirer.prompt([{
-    type: 'list',
-    name: 'action',
-    message: theme.accent('Options:'),
-    choices,
-    pageSize: 10
-  }]);
-  
-  switch (action) {
-    case 'analytics':
-      await showUserAnalytics();
-      return await showSystemMenu();
-    
-    case 'creator':
-      await showCreatorAnalytics();
-      return await showSystemMenu();
-    
-    case 'back':
-      return;
-  }
-};
-
-// ═══════════════════════════════════════════════════════════
 // 📡 TELEMETRY SYSTEM (Optional, anonymous)
 // ═══════════════════════════════════════════════════════════
 
