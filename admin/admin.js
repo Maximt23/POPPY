@@ -4089,7 +4089,7 @@ attachSkillToAgent = async function() {
 };
 
 // FIX: System menu
-showSystemMenu = async function() {
+async function showSystemMenu() {
   showHeader();
   log.title('⚙️ System');
   
