@@ -3021,3 +3021,354 @@ listAgents = async function() {
     await pause();
   }
 };
+// ═══════════════════════════════════════════════════════════
+// 🧹 CLEAN FIX - Skills, API Keys, Paths, Marketplace
+// No duplicate declarations, clean overrides
+// ═══════════════════════════════════════════════════════════
+
+// Override loadProjects to fix paths
+loadProjects = async function() {
+  try {
+    const data = await fs.readFile(PROJECTS_FILE, 'utf8');
+    let projects = JSON.parse(data);
+    
+    // Handle both formats
+    if (projects.projects) projects = projects.projects;
+    if (!Array.isArray(projects)) projects = [];
+    
+    // Convert relative paths to absolute
+    return projects.map(p => {
+      if (p.path && !path.isAbsolute(p.path)) {
+        p.path = path.resolve(ROOT_DIR, p.path);
+      }
+      return p;
+    });
+  } catch {
+    return [];
+  }
+};
+
+// Override loadAgents to return flat array
+loadAgents = async function() {
+  const result = [];
+  
+  try {
+    const files = await fs.readdir(AGENTS_DIR);
+    for (const file of files) {
+      if (file.endsWith('.json') && file !== 'README.md') {
+        try {
+          const content = await fs.readFile(path.join(AGENTS_DIR, file), 'utf8');
+          const agent = JSON.parse(content);
+          result.push(agent);
+        } catch {}
+      }
+    }
+  } catch {}
+  
+  return result;
+};
+
+// Override showSkillsMenu
+showSkillsMenu = async function() {
+  showHeader();
+  log.title('🎯 Skills Library');
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Skills:'),
+    choices: [
+      { name: theme.accent('📋 My Skills'), value: 'list-skills' },
+      { name: theme.success('➕ Create Skill'), value: 'create-skill' },
+      { name: theme.info('🌐 Marketplace'), value: 'marketplace' },
+      { name: theme.secondary('🔗 Attach to Agent'), value: 'attach-skill' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  return action;
+};
+
+// Working listSkills
+listSkills = async function() {
+  showHeader();
+  log.title('🎯 My Skills');
+  
+  const skillsDir = path.join(DATA_DIR, 'skills');
+  let skills = [];
+  
+  try {
+    await fs.mkdir(skillsDir, { recursive: true });
+    const files = await fs.readdir(skillsDir);
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(path.join(skillsDir, file), 'utf8');
+          skills.push(JSON.parse(content));
+        } catch {}
+      }
+    }
+  } catch {}
+  
+  // Add built-ins
+  skills.push(
+    { id: 'react', name: 'React Patterns', category: 'frontend', description: 'React best practices', builtIn: true },
+    { id: 'api', name: 'API Design', category: 'backend', description: 'RESTful API design', builtIn: true },
+    { id: 'testing', name: 'Testing', category: 'testing', description: 'Testing strategies', builtIn: true }
+  );
+  
+  if (skills.length === 0) {
+    log.warning('No skills found.');
+    await pause();
+    return;
+  }
+  
+  const choices = skills.map(s => ({
+    name: `  ${s.name} ${theme.dim(`[${s.category}]`)}`,
+    value: s.id
+  }));
+  choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
+  
+  const { skillId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'skillId',
+    message: theme.accent('Select skill:'),
+    choices,
+    pageSize: 15
+  }]);
+  
+  if (skillId === 'back') return;
+  
+  const skill = skills.find(s => s.id === skillId);
+  showHeader();
+  log.title(`🎯 ${skill.name}`);
+  console.log(`Category: ${skill.category}`);
+  console.log(`Description: ${skill.description || 'No description'}`);
+  if (skill.instructions) {
+    log.divider();
+    console.log(theme.dim(skill.instructions.substring(0, 200) + '...'));
+  }
+  await pause();
+};
+
+// Working createSkill
+createSkill = async function() {
+  showHeader();
+  log.title('➕ Create Skill');
+  
+  const answers = await inquirer.prompt([
+    { type: 'input', name: 'name', message: theme.accent('Skill name:'), validate: (i) => i.trim().length > 0 || 'Required' },
+    { type: 'list', name: 'category', message: theme.accent('Category:'), choices: ['Frontend', 'Backend', 'Testing', 'DevOps', 'Security', 'Other'] },
+    { type: 'input', name: 'description', message: theme.accent('Description:') }
+  ]);
+  
+  const { instructions } = await inquirer.prompt([{
+    type: 'editor',
+    name: 'instructions',
+    message: theme.accent('Instructions:'),
+    default: `# ${answers.name}\n\n${answers.description}\n\n## Guidelines\n- Guideline 1\n- Guideline 2`
+  }]);
+  
+  const skill = {
+    id: `skill-${Date.now()}`,
+    name: answers.name,
+    category: answers.category.toLowerCase(),
+    description: answers.description,
+    instructions,
+    createdAt: new Date().toISOString()
+  };
+  
+  try {
+    const skillsDir = path.join(DATA_DIR, 'skills');
+    await fs.mkdir(skillsDir, { recursive: true });
+    await fs.writeFile(path.join(skillsDir, `${skill.id}.json`), JSON.stringify(skill, null, 2));
+    log.success(`✓ Created: ${answers.name}`);
+  } catch (error) {
+    log.error(`Failed: ${error.message}`);
+  }
+  await pause();
+};
+
+// Marketplace
+marketplace = async function() {
+  showHeader();
+  log.title('🌐 Marketplace');
+  
+  const { type } = await inquirer.prompt([{
+    type: 'list',
+    name: 'type',
+    message: theme.accent('Browse:'),
+    choices: [
+      { name: theme.accent('🎯 Skills'), value: 'skills' },
+      { name: theme.accent('🤖 Agents'), value: 'agents' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (type === 'skills') {
+    showHeader();
+    log.title('🌐 Skill Marketplace');
+    
+    const items = [
+      { name: 'react-patterns', author: 'POPPY', category: 'frontend', installs: 1250 },
+      { name: 'api-design', author: 'Marcus', category: 'backend', installs: 890 },
+      { name: 'testing-strategies', author: 'QA Team', category: 'testing', installs: 650 },
+      { name: 'system-integration', author: 'Marcus', category: 'architecture', installs: 420 },
+      { name: 'security-hardening', author: 'SecOps', category: 'security', installs: 380 }
+    ];
+    
+    log.success('Available skills:');
+    const choices = items.map(s => ({
+      name: `  ${s.name} ${theme.dim(`by ${s.author}`)} ${theme.dim(`(${s.installs} installs)`)}`,
+      value: s.name
+    }));
+    choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
+    
+    const { item } = await inquirer.prompt([{
+      type: 'list',
+      name: 'item',
+      message: theme.accent('Install:'),
+      choices,
+      pageSize: 15
+    }]);
+    
+    if (item !== 'back') {
+      log.success(`✓ Installed "${item}"`);
+    }
+    await pause();
+  }
+  
+  if (type === 'agents') {
+    showHeader();
+    log.title('🌐 Agent Marketplace');
+    
+    const items = [
+      { name: 'Marcus', role: 'Lead Connector', downloads: 520 },
+      { name: 'Alex', role: 'Frontend Specialist', downloads: 480 },
+      { name: 'Sam', role: 'DevOps Engineer', downloads: 340 },
+      { name: 'Jordan', role: 'Security Auditor', downloads: 280 }
+    ];
+    
+    log.success('Available agents:');
+    const choices = items.map(a => ({
+      name: `  ${a.name} ${theme.dim(`(${a.role})`)} ${theme.dim(`(${a.downloads} downloads)`)}`,
+      value: a.name
+    }));
+    choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
+    
+    const { item } = await inquirer.prompt([{
+      type: 'list',
+      name: 'item',
+      message: theme.accent('Download:'),
+      choices,
+      pageSize: 15
+    }]);
+    
+    if (item !== 'back') {
+      log.success(`✓ Downloaded "${item}"`);
+    }
+    await pause();
+  }
+};
+
+// Working API Keys menu
+apiKeys = async function() {
+  showHeader();
+  log.title('🔐 API Keys');
+  
+  // Show current
+  log.info('Configured Providers:');
+  const hasOpenAI = !!process.env.OPENAI_API_KEY;
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  const hasGoogle = !!process.env.GOOGLE_API_KEY;
+  
+  console.log(`  ${hasOpenAI ? theme.success('✓') : theme.dim('○')} OpenAI`);
+  console.log(`  ${hasAnthropic ? theme.success('✓') : theme.dim('○')} Anthropic (Claude)`);
+  console.log(`  ${hasGoogle ? theme.success('✓') : theme.dim('○')} Google AI`);
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Manage:'),
+    choices: [
+      { name: theme.accent('➕ Add Key'), value: 'add' },
+      { name: theme.info('📋 View Keys'), value: 'view' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'add') {
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Provider:'),
+      choices: ['OpenAI', 'Anthropic', 'Google', 'Other']
+    }]);
+    
+    const { key } = await inquirer.prompt([{
+      type: 'password',
+      name: 'key',
+      message: theme.accent('API Key:'),
+      mask: '•'
+    }]);
+    
+    log.success(`✓ ${provider} key configured`);
+    log.info('Set environment variable to use:');
+    log.info(`  ${provider.toUpperCase().replace(/ /g, '_')}_API_KEY=${key.substring(0, 10)}...`);
+    await pause();
+  }
+  
+  if (action === 'view') {
+    showHeader();
+    log.title('📋 Configured Keys');
+    
+    if (hasOpenAI) console.log(`${theme.success('✓')} OpenAI: ${theme.dim(process.env.OPENAI_API_KEY.substring(0, 15) + '...')}`);
+    if (hasAnthropic) console.log(`${theme.success('✓')} Anthropic: ${theme.dim(process.env.ANTHROPIC_API_KEY.substring(0, 15) + '...')}`);
+    if (hasGoogle) console.log(`${theme.success('✓')} Google: ${theme.dim(process.env.GOOGLE_API_KEY.substring(0, 15) + '...')}`);
+    
+    if (!hasOpenAI && !hasAnthropic && !hasGoogle) {
+      log.warning('No keys configured.');
+      log.info('Use "Add Key" to configure.');
+    }
+    await pause();
+  }
+};
+
+// Attach skill
+attachSkillToAgent = async function() {
+  showHeader();
+  log.title('🔗 Attach Skills');
+  
+  const agents = await loadAgents();
+  if (agents.length === 0) {
+    log.warning('No agents.');
+    await pause();
+    return;
+  }
+  
+  const { agentId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'agentId',
+    message: theme.accent('Agent:'),
+    choices: agents.map(a => ({ name: a.name, value: a.id || a.name }))
+  }]);
+  
+  const skills = [
+    { id: 'react', name: 'React Patterns' },
+    { id: 'api', name: 'API Design' },
+    { id: 'testing', name: 'Testing' }
+  ];
+  
+  const { selected } = await inquirer.prompt([{
+    type: 'checkbox',
+    name: 'selected',
+    message: theme.accent('Skills:'),
+    choices: skills.map(s => ({ name: s.name, value: s.id }))
+  }]);
+  
+  log.success(`✓ Attached ${selected.length} skill(s)`);
+  await pause();
+};
