@@ -110,3 +110,5 @@ coverage/
 # - docs/ (documentation)
 # - README, LICENSE, etc.
 
+USER-CONFIG.md  
+.env 
