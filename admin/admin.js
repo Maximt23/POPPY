@@ -5449,6 +5449,10 @@ showAgentsMenu = async function() {
       await syncFromEngines('agents');
       return await showAgentsMenu();
     
+    case 'list':
+      await listAgents();
+      return await showAgentsMenu();
+    
     case 'back':
       return 'back';
     
@@ -5511,6 +5515,10 @@ showSkillsMenu = async function() {
     
     case 'sync':
       await syncFromEngines('skills');
+      return await showSkillsMenu();
+    
+    case 'list':
+      await listSkills();
       return await showSkillsMenu();
     
     case 'back':
@@ -5747,6 +5755,10 @@ showProjectsMenu = async function() {
     
     case 'sync':
       await syncFromEngines('projects');
+      return await showProjectsMenu();
+    
+    case 'list':
+      await manageProjects();
       return await showProjectsMenu();
     
     case 'back':
@@ -6106,7 +6118,6 @@ async function showUserAnalytics() {
 // 👑 CREATOR ANALYTICS (Maxim's Private Version Only)
 // ═══════════════════════════════════════════════════════════
 
-async function _emptyPlaceholder() {
 
 // Load global analytics (aggregated from all users)
 async function loadGlobalAnalytics() {
@@ -6247,12 +6258,6 @@ async function loadSettings() {
   }
 }
 
-// Stub helpers
-const fsSync = {
-  readFileSync: (...args) => require('fs').readFileSync(...args),
-  accessSync: (...args) => require('fs').accessSync(...args)
-};
-} 
 // Helper: Load skills
 async function loadSkills() {
   try {
