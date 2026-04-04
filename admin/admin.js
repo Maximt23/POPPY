@@ -6015,7 +6015,7 @@ function generateUserId() {
 // 📊 USER ANALYTICS MENU (System → Analytics)
 // ═══════════════════════════════════════════════════════════
 
-showUserAnalytics = async function() {
+async function showUserAnalytics() {
   showHeader();
   log.title('📊 Your Analytics');
   log.info('Personal usage statistics');
@@ -6078,7 +6078,7 @@ showUserAnalytics = async function() {
 // 👑 CREATOR ANALYTICS (Maxim's Private Version Only)
 // ═══════════════════════════════════════════════════════════
 
-// Check if this is the creator version
+async function showCreatorAnalytics() {
 function isCreatorVersion() {
   try {
     // Check for creator flag in package.json or special file
@@ -6122,7 +6122,7 @@ async function loadGlobalAnalytics() {
 // 👑 CREATOR ANALYTICS MENU (Only for POPPY-MAXIM)
 // ═══════════════════════════════════════════════════════════
 
-showCreatorAnalytics = async function() {
+async function showCreatorAnalytics() {
   showHeader();
   log.title('👑 Creator Analytics');
   log.info('Global POPPY usage data');
@@ -6205,7 +6205,7 @@ showCreatorAnalytics = async function() {
 // 🔄 ENHANCED SYSTEM MENU with Analytics
 // ═══════════════════════════════════════════════════════════
 
-showSystemMenu = async function() {
+async function showSystemMenu() {
   showHeader();
   log.title('⚙️ System');
   
@@ -6296,3 +6296,4 @@ const fsSync = {
   readFileSync: (...args) => require('fs').readFileSync(...args),
   accessSync: (...args) => require('fs').accessSync(...args)
 };
+} 
