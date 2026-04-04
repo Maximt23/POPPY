@@ -5938,3 +5938,361 @@ async function handleOriginalProjectAction(action) {
   log.info(`Original action: ${action}`);
   await pause();
 }
+
+// ═══════════════════════════════════════════════════════════
+// 📊 ANALYTICS SYSTEM - Dual Tier
+// 1. User Analytics (for everyone) - Personal usage
+// 2. Creator Analytics (for Maxim only) - Global data
+// ═══════════════════════════════════════════════════════════
+
+const ANALYTICS_VERSION = '1.0.0';
+const ANALYTICS_FILE = path.join(DATA_DIR, 'analytics.json');
+
+// ═══════════════════════════════════════════════════════════
+// 📊 USER ANALYTICS (Available to all users)
+// ═══════════════════════════════════════════════════════════
+
+// Record user activity (local only)
+async function recordActivity(type, details = {}) {
+  try {
+    const analytics = await loadAnalytics();
+    
+    analytics.activities.push({
+      type,
+      timestamp: new Date().toISOString(),
+      details
+    });
+    
+    // Update counters
+    analytics.counters[type] = (analytics.counters[type] || 0) + 1;
+    
+    await saveAnalytics(analytics);
+  } catch (e) {
+    // Silent fail - don't break user experience
+  }
+}
+
+// Load analytics data
+async function loadAnalytics() {
+  try {
+    const content = await fs.readFile(ANALYTICS_FILE, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return {
+      version: ANALYTICS_VERSION,
+      userId: generateUserId(),
+      firstUse: new Date().toISOString(),
+      lastUse: new Date().toISOString(),
+      activities: [],
+      counters: {},
+      models: {},
+      projects: [],
+      agents: [],
+      skills: [],
+      prompts: []
+    };
+  }
+}
+
+// Save analytics
+async function saveAnalytics(data) {
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    data.lastUse = new Date().toISOString();
+    await fs.writeFile(ANALYTICS_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    // Silent fail
+  }
+}
+
+// Generate anonymous user ID
+function generateUserId() {
+  return 'user-' + Math.random().toString(36).substring(2, 15) + 
+         Math.random().toString(36).substring(2, 15);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📊 USER ANALYTICS MENU (System → Analytics)
+// ═══════════════════════════════════════════════════════════
+
+showUserAnalytics = async function() {
+  showHeader();
+  log.title('📊 Your Analytics');
+  log.info('Personal usage statistics');
+  log.divider();
+  
+  const analytics = await loadAnalytics();
+  
+  // Calculate stats
+  const totalActivities = analytics.activities.length;
+  const daysSinceStart = Math.max(1, Math.floor(
+    (new Date() - new Date(analytics.firstUse)) / (1000 * 60 * 60 * 24)
+  ));
+  
+  console.log(`${theme.accent('📅 Member Since:')} ${new Date(analytics.firstUse).toLocaleDateString()}`);
+  console.log(`${theme.accent('⏱️  Active Days:')} ${daysSinceStart}`);
+  console.log(`${theme.accent('📈 Total Activities:')} ${totalActivities}`);
+  
+  log.divider();
+  
+  // Show counters
+  if (Object.keys(analytics.counters).length > 0) {
+    log.info('Activity Breakdown:');
+    const sortedCounters = Object.entries(analytics.counters)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    for (const [activity, count] of sortedCounters) {
+      const bar = '█'.repeat(Math.min(count, 20));
+      console.log(`  ${activity.padEnd(20)} ${bar} ${count}`);
+    }
+  }
+  
+  log.divider();
+  
+  // Models used
+  if (Object.keys(analytics.models).length > 0) {
+    log.info('AI Models Used:');
+    for (const [model, count] of Object.entries(analytics.models)) {
+      console.log(`  ${theme.accent('•')} ${model}: ${count} uses`);
+    }
+  }
+  
+  // Assets created
+  const projects = await loadProjects();
+  const agents = await loadAgents();
+  const skills = await loadSkills();
+  const prompts = await loadPrompts();
+  
+  log.divider();
+  log.info('Your Assets:');
+  console.log(`  ${theme.accent('📁 Projects:')} ${projects.length}`);
+  console.log(`  ${theme.accent('🤖 Agents:')} ${agents.length}`);
+  console.log(`  ${theme.accent('🎯 Skills:')} ${skills.length}`);
+  console.log(`  ${theme.accent('💬 Prompts:')} ${prompts.length}`);
+  
+  await pause();
+};
+
+// ═══════════════════════════════════════════════════════════
+// 👑 CREATOR ANALYTICS (Maxim's Private Version Only)
+// ═══════════════════════════════════════════════════════════
+
+// Check if this is the creator version
+function isCreatorVersion() {
+  try {
+    // Check for creator flag in package.json or special file
+    const packagePath = path.join(ROOT_DIR, 'package.json');
+    const pkg = JSON.parse(fsSync.readFileSync(packagePath, 'utf8'));
+    return pkg.name === 'poppy-maxim' || pkg.creator === true;
+  } catch {
+    // Check for creator marker file
+    try {
+      fsSync.accessSync(path.join(ROOT_DIR, '.creator'));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+// Load global analytics (aggregated from all users)
+async function loadGlobalAnalytics() {
+  // In real implementation, this would come from a database
+  // For now, simulate with aggregated data from telemetry
+  try {
+    const globalPath = path.join(DATA_DIR, 'global-analytics.json');
+    const content = await fs.readFile(globalPath, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return {
+      totalUsers: 0,
+      activeUsers: 0,
+      totalProjects: 0,
+      totalAgents: 0,
+      modelUsage: {},
+      featureUsage: {},
+      geographicData: [],
+      lastUpdated: new Date().toISOString()
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 👑 CREATOR ANALYTICS MENU (Only for POPPY-MAXIM)
+// ═══════════════════════════════════════════════════════════
+
+showCreatorAnalytics = async function() {
+  showHeader();
+  log.title('👑 Creator Analytics');
+  log.info('Global POPPY usage data');
+  log.divider();
+  
+  // Only show if creator version
+  if (!isCreatorVersion()) {
+    log.warning('Creator analytics only available in POPPY-MAXIM');
+    log.info('This is the public POPPY version.');
+    await pause();
+    return;
+  }
+  
+  const global = await loadGlobalAnalytics();
+  const local = await loadAnalytics();
+  
+  // BIG NUMBERS
+  console.log(`${theme.accent('👥 Total Users:')} ${global.totalUsers.toLocaleString()}`);
+  console.log(`${theme.accent('🟢 Active Today:')} ${global.activeUsers.toLocaleString()}`);
+  console.log(`${theme.accent('📁 Total Projects:')} ${global.totalProjects.toLocaleString()}`);
+  console.log(`${theme.accent('🤖 Total Agents:')} ${global.totalAgents.toLocaleString()}`);
+  
+  log.divider();
+  
+  // Model popularity
+  if (Object.keys(global.modelUsage).length > 0) {
+    log.info('🔥 Most Popular Models:');
+    const sortedModels = Object.entries(global.modelUsage)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    for (const [model, count] of sortedModels) {
+      const percentage = ((count / global.totalUsers) * 100).toFixed(1);
+      const bar = '█'.repeat(Math.floor(percentage / 5));
+      console.log(`  ${model.padEnd(25)} ${bar} ${percentage}%`);
+    }
+  }
+  
+  log.divider();
+  
+  // Feature usage
+  if (Object.keys(global.featureUsage).length > 0) {
+    log.info('🎯 Feature Popularity:');
+    const sortedFeatures = Object.entries(global.featureUsage)
+      .sort((a, b) => b[1] - a[1]);
+    
+    for (const [feature, count] of sortedFeatures) {
+      console.log(`  ${theme.accent('•')} ${feature}: ${count.toLocaleString()} uses`);
+    }
+  }
+  
+  log.divider();
+  
+  // Geographic distribution
+  if (global.geographicData.length > 0) {
+    log.info('🌍 Geographic Distribution:');
+    for (const region of global.geographicData.slice(0, 5)) {
+      console.log(`  ${theme.accent('•')} ${region.country}: ${region.users} users`);
+    }
+  }
+  
+  // Growth metrics
+  log.divider();
+  log.info('📈 Growth Metrics:');
+  console.log(`  ${theme.accent('•')} New users (7d): ${global.newUsers7d || 'N/A'}`);
+  console.log(`  ${theme.accent('•')} Retention rate: ${global.retentionRate || 'N/A'}%`);
+  console.log(`  ${theme.accent('•')} Avg session: ${global.avgSessionTime || 'N/A'} min`);
+  
+  // Data collection info
+  log.divider();
+  log.info('ℹ️  Data Collection:');
+  log.info('  • Anonymous usage stats only');
+  log.info('  • No personal data or content captured');
+  log.info('  • Last update: ' + new Date(global.lastUpdated).toLocaleString());
+  
+  await pause();
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🔄 ENHANCED SYSTEM MENU with Analytics
+// ═══════════════════════════════════════════════════════════
+
+showSystemMenu = async function() {
+  showHeader();
+  log.title('⚙️ System');
+  
+  // Different menu for creator vs user
+  const isCreator = isCreatorVersion();
+  
+  const choices = [
+    { name: theme.info('📊 Analytics'), value: 'analytics' },
+    { name: theme.info('📈 Status'), value: 'status' },
+    new inquirer.Separator(),
+    { name: theme.dim('← Back'), value: 'back' }
+  ];
+  
+  // Add creator-only option
+  if (isCreator) {
+    choices.splice(1, 0, { 
+      name: theme.accent('👑 Creator Dashboard'), 
+      value: 'creator' 
+    });
+  }
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Options:'),
+    choices,
+    pageSize: 10
+  }]);
+  
+  switch (action) {
+    case 'analytics':
+      await showUserAnalytics();
+      return await showSystemMenu();
+    
+    case 'creator':
+      await showCreatorAnalytics();
+      return await showSystemMenu();
+    
+    case 'status':
+      const projects = await loadProjects();
+      const agents = await loadAgents();
+      log.success(`Projects: ${projects.length}`);
+      log.success(`Agents: ${agents.length}`);
+      await pause();
+      return await showSystemMenu();
+    
+    case 'back':
+      return;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// 📡 TELEMETRY SYSTEM (Optional, anonymous)
+// ═══════════════════════════════════════════════════════════
+
+// Send anonymous telemetry (only if user opts in)
+async function sendTelemetry(data) {
+  try {
+    // Check if telemetry is enabled
+    const settings = await loadSettings();
+    if (!settings.telemetry) return;
+    
+    // In production, this would send to your analytics endpoint
+    // For now, just log that it would be sent
+    console.log('[Telemetry] Would send:', {
+      anonymousId: data.userId,
+      event: data.type,
+      timestamp: new Date().toISOString()
+    });
+  } catch {
+    // Silent fail
+  }
+}
+
+// Load settings
+async function loadSettings() {
+  try {
+    const settingsPath = path.join(DATA_DIR, 'settings.json');
+    const content = await fs.readFile(settingsPath, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return { telemetry: false };
+  }
+}
+
+// Stub helpers
+const fsSync = {
+  readFileSync: (...args) => require('fs').readFileSync(...args),
+  accessSync: (...args) => require('fs').accessSync(...args)
+};
