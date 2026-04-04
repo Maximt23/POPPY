@@ -5015,3 +5015,259 @@ apiKeys = async function() {
     await pause();
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🔧 MAIN MENU RESTRUCTURE
+// 1. Add Marketplace with 3 subsections
+// 2. Add Prompts section
+// 3. Clean, minimal menu
+// ═══════════════════════════════════════════════════════════
+
+// NEW: Marketplace Menu
+showMarketplaceMenu = async function() {
+  showHeader();
+  log.title('🛒 Marketplace');
+  log.info('Discover and install shared resources');
+  log.divider();
+
+  const { section } = await inquirer.prompt([{
+    type: 'list',
+    name: 'section',
+    message: theme.accent('Choose marketplace:'),
+    choices: [
+      { name: theme.primary('🤖 Agent Marketplace'), value: 'agents' },
+      { name: theme.secondary('🎯 Skills Marketplace'), value: 'skills' },
+      { name: theme.accent('💬 Prompt Marketplace'), value: 'prompts' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 10
+  }]);
+
+  if (section === 'back') return 'back';
+
+  switch (section) {
+    case 'agents':
+      log.info('🤖 Agent Marketplace');
+      log.info('Browse and install community agents');
+      // Future: Connect to GitHub/agent registry
+      log.warning('Coming soon: Browse agents from GitHub');
+      await pause();
+      return await showMarketplaceMenu();
+    
+    case 'skills':
+      log.info('🎯 Skills Marketplace');
+      log.info('Browse and install community skills');
+      // Future: Connect to skills registry
+      log.warning('Coming soon: Browse skills from registry');
+      await pause();
+      return await showMarketplaceMenu();
+    
+    case 'prompts':
+      log.info('💬 Prompt Marketplace');
+      log.info('Browse and install community prompts');
+      // Future: Connect to prompt registry
+      log.warning('Coming soon: Browse prompts from registry');
+      await pause();
+      return await showMarketplaceMenu();
+  }
+};
+
+// NEW: Prompts Menu (similar to Skills)
+showPromptsMenu = async function() {
+  showHeader();
+  log.title('💬 Prompts');
+  log.info('Manage your prompt templates and patterns');
+  log.divider();
+
+  const prompts = await loadPrompts();
+
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Choose action:'),
+    choices: [
+      { name: theme.accent('➕ Create Prompt'), value: 'create' },
+      { name: theme.secondary('📁 My Prompts'), value: 'list' },
+      { name: theme.info('🔗 Attach to Agent'), value: 'attach' },
+      { name: theme.warning('🗑️  Delete'), value: 'delete' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 10
+  }]);
+
+  switch (action) {
+    case 'create':
+      const { name } = await inquirer.prompt([{
+        type: 'input',
+        name: 'name',
+        message: theme.accent('Prompt name (or "cancel"):')
+      }]);
+      
+      if (!name.trim() || name.trim().toLowerCase() === 'cancel') {
+        log.info('Cancelled');
+        await pause();
+        return await showPromptsMenu();
+      }
+      
+      const { template } = await inquirer.prompt([{
+        type: 'editor',
+        name: 'template',
+        message: theme.accent('Enter prompt template:'),
+        default: 'You are a helpful assistant.\n\nContext: {{context}}\n\nTask: {{task}}'
+      }]);
+      
+      try {
+        const promptsDir = path.join(DATA_DIR, 'prompts');
+        await fs.mkdir(promptsDir, { recursive: true });
+        
+        const promptData = {
+          id: `prompt-${Date.now()}`,
+          name: name.trim(),
+          template: template,
+          variables: extractVariables(template),
+          createdAt: new Date().toISOString()
+        };
+        
+        await fs.writeFile(
+          path.join(promptsDir, `${promptData.id}.json`),
+          JSON.stringify(promptData, null, 2)
+        );
+        
+        log.success(`✓ Created prompt: ${name}`);
+      } catch (e) {
+        log.error(`Failed: ${e.message}`);
+      }
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'list':
+      if (prompts.length === 0) {
+        log.warning('No prompts created yet');
+      } else {
+        log.success(`Your prompts (${prompts.length}):`);
+        for (const p of prompts) {
+          console.log(`  ${theme.accent('•')} ${p.name}`);
+        }
+      }
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'attach':
+      log.info('Attach prompt to agent...');
+      log.warning('Feature coming soon');
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'delete':
+      if (prompts.length === 0) {
+        log.warning('No prompts to delete');
+        await pause();
+        return await showPromptsMenu();
+      }
+      
+      const { toDelete } = await inquirer.prompt([{
+        type: 'list',
+        name: 'toDelete',
+        message: theme.warning('Select prompt to delete:'),
+        choices: [
+          ...prompts.map(p => ({ name: p.name, value: p.id })),
+          new inquirer.Separator(),
+          { name: theme.dim('← Cancel'), value: 'cancel' }
+        ]
+      }]);
+      
+      if (toDelete === 'cancel') return await showPromptsMenu();
+      
+      const { confirm } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'confirm',
+        message: theme.warning('Delete this prompt?'),
+        default: false
+      }]);
+      
+      if (confirm) {
+        try {
+          await fs.unlink(path.join(DATA_DIR, 'prompts', `${toDelete}.json`));
+          log.success('✓ Prompt deleted');
+        } catch (e) {
+          log.error(`Failed: ${e.message}`);
+        }
+      }
+      await pause();
+      return await showPromptsMenu();
+    
+    case 'back':
+      return 'back';
+  }
+};
+
+// Helper: Load prompts
+async function loadPrompts() {
+  try {
+    const promptsDir = path.join(DATA_DIR, 'prompts');
+    const files = await fs.readdir(promptsDir);
+    const prompts = [];
+    
+    for (const file of files) {
+      if (file.endsWith('.json')) {
+        try {
+          const content = await fs.readFile(path.join(promptsDir, file), 'utf8');
+          prompts.push(JSON.parse(content));
+        } catch {}
+      }
+    }
+    
+    return prompts;
+  } catch {
+    return [];
+  }
+}
+
+// Helper: Extract {{variables}} from template
+function extractVariables(template) {
+  const matches = template.match(/\{\{(\w+)\}\}/g) || [];
+  return [...new Set(matches.map(m => m.replace(/[{}]/g, '')))];
+}
+
+// NEW: Clean main menu with Marketplace and Prompts
+mainMenu = async function() {
+  showHeader();
+
+  const { category } = await inquirer.prompt([{
+    type: 'list',
+    name: 'category',
+    message: theme.primary('What would you like to do?'),
+    choices: [
+      { name: theme.primary('📁 Projects'), value: 'projects' },
+      { name: theme.primary('🤖 Agents'), value: 'agents' },
+      { name: theme.secondary('🎯 Skills'), value: 'skills' },
+      { name: theme.accent('💬 Prompts'), value: 'prompts' },
+      { name: theme.info('🛒 Marketplace'), value: 'marketplace' },
+      { name: theme.info('🔐 API Keys'), value: 'api' },
+      { name: theme.warning('🔀 Git'), value: 'git' },
+      { name: theme.dim('⚙️  System'), value: 'system' },
+      new inquirer.Separator(),
+      { name: theme.error('✕ Exit'), value: 'exit' }
+    ],
+    pageSize: 12
+  }]);
+
+  if (category === 'exit') return 'exit';
+
+  let action;
+  switch (category) {
+    case 'projects': action = await showProjectsMenu(); break;
+    case 'agents': action = await showAgentsMenu(); break;
+    case 'skills': action = await showSkillsMenu(); break;
+    case 'prompts': action = await showPromptsMenu(); break;
+    case 'marketplace': action = await showMarketplaceMenu(); break;
+    case 'api': action = await showApiMenu(); break;
+    case 'git': action = await showGitMenu(); break;
+    case 'system': action = await showSystemMenu(); break;
+  }
+
+  if (action === 'back') return await mainMenu();
+  return action;
+};

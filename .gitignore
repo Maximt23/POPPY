@@ -16,8 +16,19 @@ shared-rules/
 skills/
 
 # POPPY user data (local to each installation)
-admin/data/
+admin/data/*
+!admin/data/.gitkeep
 admin/.poppy/
+
+# User directories (keep structure with .gitkeep)
+projects/*
+!projects/.gitkeep
+agents/*
+!agents/.gitkeep
+skills/*
+!skills/.gitkeep
+prompts/*
+!prompts/.gitkeep
 
 # ═══════════════════════════════════════════════════════════
 # SECRETS & KEYS (Critical - Never Commit!)
