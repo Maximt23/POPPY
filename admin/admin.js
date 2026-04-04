@@ -1886,6 +1886,12 @@ async function main() {
 
   await ensureDataDir();
 
+  // 🔐 Check creator password for poppy-maxim
+  const hasAccess = await verifyCreatorAccess();
+  if (!hasAccess) {
+    process.exit(1);
+  }
+
   while (true) {
     const action = await mainMenu();
 
@@ -6413,4 +6419,71 @@ async function loadMarketplaceItems(type) {
   } catch {
     return [];
   }
+}
+// ═══════════════════════════════════════════════════════════
+// 🎭 ORCHESTRATOR MENU (System → System Maintenance - Creator Only)
+// ═══════════════════════════════════════════════════════════
+
+async function showOrchestratorMenu() {
+  showHeader();
+  log.title('🎭 System Maintenance (Orchestrator)');
+  log.info('Manage POPPY system agents');
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Select maintenance agent:'),
+    choices: [
+      { name: theme.primary('🎭 POPPY Orchestrator'), value: 'orchestrator' },
+      { name: theme.secondary('🔧 Core Developer'), value: 'core-developer' },
+      { name: theme.info('📦 Entity Manager'), value: 'entity-manager' },
+      { name: theme.warning('🧪 Tester'), value: 'tester' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ],
+    pageSize: 10
+  }]);
+  
+  if (action === 'back') return;
+  
+  // Load the selected agent
+  const agentId = `poppy-${action}`;
+  const agentPath = path.join(AGENTS_DIR, `agent-${agentId}.json`);
+  
+  try {
+    const agentContent = await fs.readFile(agentPath, 'utf8');
+    const agent = JSON.parse(agentContent);
+    
+    log.success(`Loaded: ${agent.name}`);
+    log.info(agent.description);
+    log.divider();
+    
+    // Display agent capabilities
+    if (agent.capabilities && agent.capabilities.length > 0) {
+      log.info('Capabilities:');
+      agent.capabilities.forEach(cap => {
+        console.log(`  ${theme.accent('•')} ${cap}`);
+      });
+    }
+    
+    // Display workflows
+    if (agent.workflows && agent.workflows.length > 0) {
+      log.divider();
+      log.info('Available Workflows:');
+      agent.workflows.forEach((workflow, idx) => {
+        console.log(`  ${theme.accent(`${idx + 1}.`)} ${workflow.name}`);
+        console.log(`     ${theme.dim(workflow.description)}`);
+      });
+    }
+    
+    await pause();
+    
+  } catch (err) {
+    log.error(`Could not load agent: ${agentId}`);
+    log.info('Make sure the agent file exists in the agents folder');
+    await pause();
+  }
+  
+  return await showOrchestratorMenu();
 }
