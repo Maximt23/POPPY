@@ -5024,7 +5024,7 @@ apiKeys = async function() {
 // ═══════════════════════════════════════════════════════════
 
 // NEW: Marketplace Menu
-showMarketplaceMenu = async function() {
+async function showMarketplaceMenu() {
   showHeader();
   log.title('🛒 Marketplace');
   log.info('Discover and install shared resources');
@@ -5074,7 +5074,7 @@ showMarketplaceMenu = async function() {
 };
 
 // NEW: Prompts Menu (similar to Skills)
-showPromptsMenu = async function() {
+async function showPromptsMenu() {
   showHeader();
   log.title('💬 Prompts');
   log.info('Manage your prompt templates and patterns');
