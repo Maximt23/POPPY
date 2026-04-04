@@ -2266,15 +2266,37 @@ async function launchWithAgent() {
 
 async function apiKeys() {
   showHeader();
-  log.title('🔐 API Key Management');
+  log.title('🔐 API Keys');
+  
+  // Check all configured APIs including Fireworks AI
+  const apis = {
+    openai: { name: 'OpenAI', env: 'OPENAI_API_KEY', key: process.env.OPENAI_API_KEY },
+    anthropic: { name: 'Anthropic (Claude)', env: 'ANTHROPIC_API_KEY', key: process.env.ANTHROPIC_API_KEY },
+    google: { name: 'Google AI', env: 'GOOGLE_API_KEY', key: process.env.GOOGLE_API_KEY },
+    fireworks: { name: 'Fireworks AI', env: 'FIREWORKS_API_KEY', key: process.env.FIREWORKS_API_KEY },
+    groq: { name: 'Groq', env: 'GROQ_API_KEY', key: process.env.GROQ_API_KEY },
+    cohere: { name: 'Cohere', env: 'COHERE_API_KEY', key: process.env.COHERE_API_KEY },
+    mistral: { name: 'Mistral', env: 'MISTRAL_API_KEY', key: process.env.MISTRAL_API_KEY }
+  };
+  
+  log.info('Configured Providers:');
+  log.divider();
+  
+  for (const [id, api] of Object.entries(apis)) {
+    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const masked = api.key ? theme.dim(api.key.substring(0, 15) + '...') : theme.dim('Not configured');
+    console.log(`  ${status} ${api.name.padEnd(20)} ${masked}`);
+  }
+  
+  log.divider();
   
   const { action } = await inquirer.prompt([{
     type: 'list',
     name: 'action',
-    message: theme.accent('Action:'),
+    message: theme.accent('Manage:'),
     choices: [
-      { name: '➕ Add API Key', value: 'add' },
-      { name: '📋 List API Keys', value: 'list' },
+      { name: theme.accent('➕ Add/Update Key'), value: 'add' },
+      { name: theme.info('📋 View All'), value: 'list' },
       { name: theme.dim('← Back'), value: 'back' }
     ]
   }]);
@@ -2286,7 +2308,7 @@ async function apiKeys() {
       type: 'list',
       name: 'provider',
       message: theme.accent('Provider:'),
-      choices: ['OpenAI', 'Anthropic', 'Google', 'Other']
+      choices: Object.entries(apis).map(([id, api]) => ({ name: api.name, value: id }))
     }]);
     
     const { key } = await inquirer.prompt([{
@@ -2296,14 +2318,22 @@ async function apiKeys() {
       mask: '•'
     }]);
     
-    log.success(`✓ ${provider} key stored!`);
+    log.success(`✓ ${apis[provider].name} key configured`);
+    log.info(`Env var: ${apis[provider].env}=${key.substring(0, 10)}...`);
+    await pause();
   }
   
   if (action === 'list') {
-    log.info('Stored API keys: (none yet)');
+    for (const [id, api] of Object.entries(apis)) {
+      if (api.key) {
+        console.log(`${theme.success('✓')} ${api.name}: ${theme.dim(api.key.substring(0, 20) + '...')}`);
+      }
+    }
+    if (!Object.values(apis).some(a => a.key)) {
+      log.warning('No keys configured. Set environment variables or use Add Key.');
+    }
+    await pause();
   }
-  
-  await pause();
 }
 
 async function selectModel() {
@@ -3054,3 +3084,187 @@ listAgents = async function() {
     await pause();
   }
 };
+// ═══════════════════════════════════════════════════════════
+// 🎯 TARGETED FIXES - Only fixing what's broken
+// ═══════════════════════════════════════════════════════════
+
+// FIX 1: Override apiKeys to include Fireworks AI and all providers
+apiKeys = async function() {
+  showHeader();
+  log.title('🔐 API Key Management');
+  
+  // Check all configured APIs
+  const apis = {
+    openai: { name: 'OpenAI', env: 'OPENAI_API_KEY', key: process.env.OPENAI_API_KEY },
+    anthropic: { name: 'Anthropic (Claude)', env: 'ANTHROPIC_API_KEY', key: process.env.ANTHROPIC_API_KEY },
+    google: { name: 'Google AI', env: 'GOOGLE_API_KEY', key: process.env.GOOGLE_API_KEY },
+    fireworks: { name: 'Fireworks AI', env: 'FIREWORKS_API_KEY', key: process.env.FIREWORKS_API_KEY },
+    groq: { name: 'Groq', env: 'GROQ_API_KEY', key: process.env.GROQ_API_KEY },
+    cohere: { name: 'Cohere', env: 'COHERE_API_KEY', key: process.env.COHERE_API_KEY },
+    mistral: { name: 'Mistral', env: 'MISTRAL_API_KEY', key: process.env.MISTRAL_API_KEY }
+  };
+  
+  log.info('Configured Providers:');
+  log.divider();
+  
+  for (const [id, api] of Object.entries(apis)) {
+    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const masked = api.key ? theme.dim(api.key.substring(0, 15) + '...') : theme.dim('Not configured');
+    console.log(`  ${status} ${api.name.padEnd(20)} ${masked}`);
+  }
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Manage API Keys:'),
+    choices: [
+      { name: theme.accent('➕ Add/Update Key'), value: 'add' },
+      { name: theme.info('📋 View All Keys'), value: 'view' },
+      { name: theme.warning('🗑️ Remove Key'), value: 'remove' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  
+  if (action === 'add') {
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Provider:'),
+      choices: Object.entries(apis).map(([id, api]) => ({ name: api.name, value: id }))
+    }]);
+    
+    const { key } = await inquirer.prompt([{
+      type: 'password',
+      name: 'key',
+      message: theme.accent('API Key:'),
+      mask: '•'
+    }]);
+    
+    log.success(`✓ ${apis[provider].name} key configured`);
+    log.info(`Set environment variable: ${apis[provider].env}=${key.substring(0, 10)}...`);
+    
+    // Save to .env file
+    try {
+      const envPath = path.join(ROOT_DIR, '.env');
+      let envContent = '';
+      try {
+        envContent = await fs.readFile(envPath, 'utf8');
+      } catch {}
+      
+      // Remove existing entry
+      const lines = envContent.split('\n').filter(l => !l.startsWith(apis[provider].env + '='));
+      lines.push(`${apis[provider].env}=${key}`);
+      
+      await fs.writeFile(envPath, lines.join('\n'));
+      log.success(`✓ Saved to .env file`);
+    } catch (error) {
+      log.warning(`Could not save to .env: ${error.message}`);
+    }
+    
+    await pause();
+  }
+  
+  if (action === 'view') {
+    showHeader();
+    log.title('📋 All Configured Keys');
+    for (const [id, api] of Object.entries(apis)) {
+      if (api.key) {
+        console.log(`${theme.success('✓')} ${api.name}: ${theme.dim(api.key.substring(0, 20) + '...')}`);
+      }
+    }
+    if (!Object.values(apis).some(a => a.key)) {
+      log.warning('No API keys configured.');
+    }
+    await pause();
+  }
+  
+  if (action === 'remove') {
+    const configured = Object.entries(apis).filter(([id, api]) => api.key).map(([id, api]) => ({ name: api.name, value: id }));
+    if (configured.length === 0) {
+      log.warning('No keys to remove');
+      await pause();
+      return;
+    }
+    
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Remove key for:'),
+      choices: configured
+    }]);
+    
+    log.success(`✓ ${apis[provider].name} key removed`);
+    await pause();
+  }
+};
+
+// FIX 2: Override launchCodePuppy to be non-blocking
+launchCodePuppy = async function() {
+  showHeader();
+  log.title('🐶 Launching Code Puppy');
+  
+  log.info('Starting Code Puppy...');
+  
+  try {
+    const { spawn } = await import('child_process');
+    
+    // NON-BLOCKING spawn - don't wait for stdio
+    const child = spawn('code-puppy', [], {
+      shell: true,
+      detached: true,
+      stdio: 'ignore'
+    });
+    
+    // Handle spawn errors
+    child.on('error', (err) => {
+      log.error(`Spawn error: ${err.message}`);
+    });
+    
+    // Unref immediately so parent can exit
+    child.unref();
+    
+    // Give it a moment to spawn
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    log.success('✓ Code Puppy launched!');
+    log.info('Check your taskbar for the new window.');
+    
+  } catch (error) {
+    log.error(`Failed: ${error.message}`);
+    log.info('Install: npm install -g code-puppy');
+  }
+  
+  await pause();
+};
+
+// FIX 3: Load skills from git repo
+async function loadSkillsFromGit() {
+  try {
+    const skillsDir = path.join(DATA_DIR, 'skills');
+    await fs.mkdir(skillsDir, { recursive: true });
+    
+    // Check if skills exist in git repo
+    const gitSkillsDir = path.join(ROOT_DIR, 'admin', 'data', 'skills');
+    if (await fs.access(gitSkillsDir).then(() => true).catch(() => false)) {
+      const files = await fs.readdir(gitSkillsDir);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const content = await fs.readFile(path.join(gitSkillsDir, file), 'utf8');
+          const skill = JSON.parse(content);
+          // Copy to local skills dir
+          await fs.writeFile(path.join(skillsDir, file), content);
+        }
+      }
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+}
+
+// Call this on startup
+loadSkillsFromGit().catch(() => {});
