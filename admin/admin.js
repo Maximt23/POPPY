@@ -4799,3 +4799,219 @@ apiKeys = async function() {
     await pause();
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🔧 GITHUB API FIX - Detect GitHub credentials from Windows Credential Manager
+// ═══════════════════════════════════════════════════════════
+
+// Helper: Check if GitHub credentials exist (can't read actual token for security)
+async function hasGitHubCredentials() {
+  try {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+    
+    // Check Windows Credential Manager for GitHub entries
+    const result = await execAsync('cmdkey /list', { timeout: 5000 });
+    const hasGitHub = result.stdout.toLowerCase().includes('github');
+    
+    return hasGitHub;
+  } catch {
+    return false;
+  }
+}
+
+// Override apiKeys with simplified GitHub detection
+apiKeys = async function() {
+  showHeader();
+  log.title('🔐 API Key Management');
+  
+  const foundKeys = [];
+  
+  // 1. Check environment variables
+  const envVars = {
+    'OpenAI': process.env.OPENAI_API_KEY,
+    'Anthropic': process.env.ANTHROPIC_API_KEY,
+    'Google/Gemini': process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
+    'Fireworks AI': process.env.FIREWORKS_API_KEY,
+    'Groq': process.env.GROQ_API_KEY,
+    'GitHub': process.env.GITHUB_TOKEN
+  };
+  
+  for (const [name, value] of Object.entries(envVars)) {
+    if (value) {
+      foundKeys.push({ name, source: 'Environment', masked: true });
+    }
+  }
+  
+  // 2. Check .env file
+  try {
+    const envPath = path.join(ROOT_DIR, '.env');
+    const envContent = await fs.readFile(envPath, 'utf8');
+    const envLines = envContent.split('\n');
+    
+    for (const line of envLines) {
+      if (line.includes('=')) {
+        const [key, val] = line.split('=');
+        if (val && val.trim()) {
+          const nameMap = {
+            'OPENAI_API_KEY': 'OpenAI',
+            'ANTHROPIC_API_KEY': 'Anthropic',
+            'GOOGLE_API_KEY': 'Google/Gemini',
+            'GEMINI_API_KEY': 'Google/Gemini',
+            'FIREWORKS_API_KEY': 'Fireworks AI',
+            'GROQ_API_KEY': 'Groq',
+            'GITHUB_TOKEN': 'GitHub'
+          };
+          const name = nameMap[key];
+          if (name && !foundKeys.find(k => k.name === name)) {
+            foundKeys.push({ name, source: '.env file', masked: true });
+          }
+        }
+      }
+    }
+  } catch {}
+  
+  // 3. Check Code Puppy puppy.cfg
+  try {
+    const { homedir } = await import('os');
+    const cfgPath = path.join(homedir(), '.code_puppy', 'puppy.cfg');
+    const cfgContent = await fs.readFile(cfgPath, 'utf8');
+    const cfgLines = cfgContent.split('\n');
+    
+    const keyMap = {
+      'gemini_api_key': 'Google/Gemini',
+      'google_generative_ai_api_key': 'Google/Gemini',
+      'fireworks_api_key': 'Fireworks AI',
+      'kimi_api_key': 'Fireworks AI (Kimi)',
+      'openai_api_key': 'OpenAI',
+      'anthropic_api_key': 'Anthropic',
+      'groq_api_key': 'Groq',
+      'github_token': 'GitHub'
+    };
+    
+    for (const line of cfgLines) {
+      if (line.includes('=')) {
+        const [key, val] = line.split('=').map(s => s.trim());
+        if (val && keyMap[key] && !foundKeys.find(k => k.name === keyMap[key])) {
+          foundKeys.push({ 
+            name: keyMap[key], 
+            source: 'Code Puppy', 
+            masked: true 
+          });
+        }
+      }
+    }
+  } catch {}
+  
+  // 4. Check GitHub credentials (special case - can't read actual value)
+  const hasGitHubCreds = await hasGitHubCredentials();
+  if (hasGitHubCreds && !foundKeys.find(k => k.name === 'GitHub')) {
+    foundKeys.push({ 
+      name: 'GitHub', 
+      source: 'Git Credential Manager (Windows)', 
+      masked: true 
+    });
+  }
+  
+  // Display results
+  if (foundKeys.length === 0) {
+    log.warning('No API keys found.');
+  } else {
+    log.success(`Found ${foundKeys.length} API key(s):`);
+    log.divider();
+    for (const key of foundKeys) {
+      console.log(`  ${theme.accent('✓')} ${key.name.padEnd(20)} ${theme.dim(`[${key.source}]`)}`);
+    }
+    log.divider();
+    log.info('API key values are hidden for security.');
+  }
+  
+  // Menu
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Actions:'),
+    choices: [
+      { name: theme.accent('➕ Add New Key'), value: 'add' },
+      { name: theme.info('📋 View Details'), value: 'view' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  
+  if (action === 'view') {
+    showHeader();
+    log.title('📋 API Key Details');
+    log.info('Configured APIs:');
+    for (const key of foundKeys) {
+      console.log(`  ${theme.accent('✓')} ${key.name}`);
+      console.log(`    Source: ${key.source}`);
+      console.log(`    Status: ${theme.accent('Active')}`);
+      console.log('');
+    }
+    if (foundKeys.length === 0) {
+      log.info('No keys configured yet.');
+    }
+    log.divider();
+    log.info('For security, actual API key values are not displayed.');
+    log.info('They are stored securely in:');
+    log.info('  - Code Puppy config (puppy.cfg)');
+    log.info('  - .env file (local only)');
+    log.info('  - Windows Credential Manager (Git)');
+    await pause();
+  }
+  
+  if (action === 'add') {
+    const providers = [
+      { name: 'OpenAI', value: 'OPENAI_API_KEY' },
+      { name: 'Anthropic (Claude)', value: 'ANTHROPIC_API_KEY' },
+      { name: 'Google/Gemini', value: 'GOOGLE_API_KEY' },
+      { name: 'Fireworks AI', value: 'FIREWORKS_API_KEY' },
+      { name: 'Groq', value: 'GROQ_API_KEY' },
+      { name: 'GitHub Token', value: 'GITHUB_TOKEN' }
+    ];
+    
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Select provider:'),
+      choices: [...providers, new inquirer.Separator(), { name: theme.dim('← Cancel'), value: 'cancel' }]
+    }]);
+    
+    if (provider === 'cancel') return;
+    
+    const { key } = await inquirer.prompt([{
+      type: 'password',
+      name: 'key',
+      message: theme.accent('Enter API key:'),
+      mask: '•'
+    }]);
+    
+    if (!key.trim()) {
+      log.info('Cancelled');
+      await pause();
+      return;
+    }
+    
+    // Save to .env file
+    try {
+      const envPath = path.join(ROOT_DIR, '.env');
+      let content = '';
+      try { content = await fs.readFile(envPath, 'utf8'); } catch {}
+      
+      const lines = content.split('\n').filter(l => !l.startsWith(provider + '='));
+      lines.push(`${provider}=${key.trim()}`);
+      
+      await fs.writeFile(envPath, lines.join('\n'));
+      log.success(`✓ ${provider} saved to .env`);
+      log.info('Restart POPPY to use the new key');
+    } catch (e) {
+      log.error(`Failed to save: ${e.message}`);
+    }
+    
+    await pause();
+  }
+};
