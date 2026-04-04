@@ -316,7 +316,7 @@ ${agents.agents.map(a => `- **${a.name}**: ${a.description} (${a.shared ? 'Share
 
     await fs.writeFile(path.join(tempDir, 'README.md'), readmeContent);
 
-    spinner.succeed(theme.success('Agent export prepared!'));
+    spinner.succeed(theme.accent('Agent export prepared!'));
 
     log.divider();
     log.info('Next steps to sync with Git:');
@@ -363,7 +363,7 @@ async function syncProjectToGit(projectPath, projectName, gitConfig) {
     const { stdout: status } = await execAsync('git status --porcelain', { cwd: projectPath });
     
     if (!status.trim()) {
-      spinner.succeed(theme.success('Nothing to commit - project is up to date!'));
+      spinner.succeed(theme.accent('Nothing to commit - project is up to date!'));
       return true;
     }
 
@@ -376,7 +376,7 @@ async function syncProjectToGit(projectPath, projectName, gitConfig) {
     const timestamp = new Date().toISOString();
     await execAsync(`git commit -m "Auto-sync: ${timestamp}"`, { cwd: projectPath });
 
-    spinner.succeed(theme.success(`${projectName} synced to Git!`));
+    spinner.succeed(theme.accent(`${projectName} synced to Git!`));
     
     log.info(`Changes committed at ${timestamp}`);
     log.info('Run "git push" manually if you have a remote configured.');
@@ -1038,7 +1038,7 @@ async function createNewProject() {
     });
     await saveProjects(projects);
 
-    spinner.succeed(theme.success(`Project "${answers.name}" created!`));
+    spinner.succeed(theme.accent(`Project "${answers.name}" created!`));
 
     // Create agents if requested
     if (answers.addAgents && answers.starterAgents?.length > 0) {
@@ -1049,7 +1049,7 @@ async function createNewProject() {
       }).start();
 
       await createStarterAgents(answers.starterAgents, projectId, answers.name);
-      agentSpinner.succeed(theme.success(`${answers.starterAgents.length} agents created!`));
+      agentSpinner.succeed(theme.accent(`${answers.starterAgents.length} agents created!`));
     }
 
     log.divider();
@@ -1367,7 +1367,7 @@ async function manageProjects() {
       theme.dim(`   Path: ${p.path}`) + '\n' +
       theme.secondary(`   Type: ${p.type}`) + '\n' +
       theme.accent(`   Status: ${p.active ? 'Active' : 'Inactive'}`) +
-      (p.gitInitialized ? '\n' + theme.success('   ✓ Git initialized') : '')
+      (p.gitInitialized ? '\n' + theme.accent('   ✓ Git initialized') : '')
     ).join('\n\n'),
     { padding: 1, borderStyle: 'round', borderColor: '#22c55e' }
   ));
@@ -1441,7 +1441,7 @@ async function selectAndSyncProjectToGit() {
       }).start();
       
       await initGitRepo(projectPath, project.name, project.id);
-      spinner.succeed(theme.success('Git initialized!'));
+      spinner.succeed(theme.accent('Git initialized!'));
     } else {
       log.warning('Cannot sync without Git repository.');
       await pause();
@@ -1479,7 +1479,7 @@ async function quickLaunch() {
   // Return the project path for the shell script to handle
   console.log(`\n${theme.primary('PROJECT_SELECTED:')}${project}`);
   
-  spinner.succeed(theme.success('Project selected!'));
+  spinner.succeed(theme.accent('Project selected!'));
   process.exit(0);
 }
 
@@ -1594,7 +1594,7 @@ async function commitMonorepo() {
     // Commit
     await execAsync(`git commit -m "${message}"`, { cwd: ROOT_DIR });
 
-    spinner.succeed(theme.success('Changes committed to monorepo!'));
+    spinner.succeed(theme.accent('Changes committed to monorepo!'));
     
     // Show commit info
     const { stdout: log } = await execAsync('git log -1 --oneline', { cwd: ROOT_DIR });
@@ -2283,7 +2283,7 @@ async function apiKeys() {
   log.divider();
   
   for (const [id, api] of Object.entries(apis)) {
-    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const status = api.key ? theme.accent('✓') : theme.dim('○');
     const masked = api.key ? theme.dim(api.key.substring(0, 15) + '...') : theme.dim('Not configured');
     console.log(`  ${status} ${api.name.padEnd(20)} ${masked}`);
   }
@@ -2326,7 +2326,7 @@ async function apiKeys() {
   if (action === 'list') {
     for (const [id, api] of Object.entries(apis)) {
       if (api.key) {
-        console.log(`${theme.success('✓')} ${api.name}: ${theme.dim(api.key.substring(0, 20) + '...')}`);
+        console.log(`${theme.accent('✓')} ${api.name}: ${theme.dim(api.key.substring(0, 20) + '...')}`);
       }
     }
     if (!Object.values(apis).some(a => a.key)) {
@@ -3108,7 +3108,7 @@ apiKeys = async function() {
   log.divider();
   
   for (const [id, api] of Object.entries(apis)) {
-    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const status = api.key ? theme.accent('✓') : theme.dim('○');
     const masked = api.key ? theme.dim(api.key.substring(0, 15) + '...') : theme.dim('Not configured');
     console.log(`  ${status} ${api.name.padEnd(20)} ${masked}`);
   }
@@ -3174,7 +3174,7 @@ apiKeys = async function() {
     log.title('📋 All Configured Keys');
     for (const [id, api] of Object.entries(apis)) {
       if (api.key) {
-        console.log(`${theme.success('✓')} ${api.name}: ${theme.dim(api.key.substring(0, 20) + '...')}`);
+        console.log(`${theme.accent('✓')} ${api.name}: ${theme.dim(api.key.substring(0, 20) + '...')}`);
       }
     }
     if (!Object.values(apis).some(a => a.key)) {
@@ -3504,7 +3504,7 @@ apiKeys = async function() {
   log.divider();
   
   for (const [id, api] of Object.entries(apis)) {
-    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const status = api.key ? theme.accent('✓') : theme.dim('○');
     const masked = api.key ? theme.dim(api.key.substring(0, 15) + '...') : theme.dim('Not configured');
     const source = api.source ? theme.dim(`[${api.source}]`) : '';
     console.log(`  ${status} ${api.name.padEnd(20)} ${masked} ${source}`);
@@ -3574,7 +3574,7 @@ apiKeys = async function() {
     for (const [id, api] of Object.entries(apis)) {
       if (api.key) {
         const source = api.source ? theme.dim(`[${api.source}]`) : '';
-        console.log(`${theme.success('✓')} ${api.name} ${source}`);
+        console.log(`${theme.accent('✓')} ${api.name} ${source}`);
         console.log(`   ${theme.dim(api.key.substring(0, 25) + '...')}`);
       }
     }
@@ -3975,7 +3975,7 @@ apiKeys = async function() {
   log.info('API Keys:');
   log.divider();
   for (const api of apis) {
-    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const status = api.key ? theme.accent('✓') : theme.dim('○');
     console.log(`  ${status} ${api.name}`);
   }
   log.divider();
@@ -4250,7 +4250,7 @@ apiKeys = async function() {
     log.success(`Found ${foundKeys.length} API key(s):`);
     log.divider();
     for (const key of foundKeys) {
-      console.log(`  ${theme.success('✓')} ${key.name.padEnd(18)} ${theme.dim(`[${key.source}]`)}`);
+      console.log(`  ${theme.accent('✓')} ${key.name.padEnd(18)} ${theme.dim(`[${key.source}]`)}`);
     }
     log.divider();
   }
@@ -4274,7 +4274,7 @@ apiKeys = async function() {
     showHeader();
     log.title('📋 API Key Details');
     for (const key of foundKeys) {
-      console.log(`${theme.success('✓')} ${key.name}`);
+      console.log(`${theme.accent('✓')} ${key.name}`);
       console.log(`  Source: ${key.source}`);
       console.log(`  Value: ${key.value}`);
       console.log('');
