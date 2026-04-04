@@ -1,31 +1,36 @@
-# 🐢 POPPY - Universal AI Project Manager
+# 🐶 POPPY - Personal AI Workspace Organizer
 
-**POPPY** is a universal overlay for AI coding engines (Codex, Claude Code, Cursor) that manages projects, agents, skills, and workflows across all your AI tools.
+**POPPY** is a terminal-based AI workspace manager that unifies your AI coding engines, projects, agents, and workflows in one place.
 
-Like `code-puppy`, but for managing all your AI engines and projects in one place.
+Think of it as a **universal command center** for AI-assisted development - like a smart terminal that knows about all your projects and can launch any AI engine with the right context.
 
-## 🚀 Quick Start (2 Steps)
+---
 
-### Step 1: Clone POPPY
-```bash
-git clone https://github.com/Maximt23/code-puppy-POPPY.git
-```
+## 🚀 Quick Start
 
-### Step 2: Run Setup
-**Windows:**
-```cmd
-cd code-puppy-POPPY\admin
-SETUP_POPPY.cmd
+### Prerequisites
+- **Node.js 18+** and **npm**
+- **Windows**, **Mac**, or **Linux**
+- At least one AI engine installed (optional): [Codex](https://github.com/openai/codex), [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview), or [Cursor](https://www.cursor.com/)
+
+### Installation
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/Maximt23/POPPY.git
+cd POPPY\admin
+.\install.cmd
 ```
 
 **Mac/Linux:**
 ```bash
-cd code-puppy-POPPY/admin
-chmod +x SETUP_POPPY.sh
-./SETUP_POPPY.sh
+git clone https://github.com/Maximt23/POPPY.git
+cd POPPY/admin
+chmod +x install.sh
+./install.sh
 ```
 
-That's it! Now type `poppy` from anywhere:
+**That's it!** Now type `poppy` from anywhere:
 ```bash
 poppy
 ```
@@ -34,90 +39,169 @@ poppy
 
 ## ✨ What Makes POPPY Special
 
-### 🎯 Universal Engine Support
-Launch any AI engine with the same workflow:
-- 🤖 **Code Puppy** - Your personal AI assistant
-- 🔷 **Codex** (OpenAI)
-- 🟣 **Claude Code** (Anthropic)
-- 🟢 **Cursor**
+### 🎯 Universal AI Engine Support
+POPPY doesn't replace your AI engines - it **enhances** them:
+- 🤖 **Any AI Engine** - Works with Codex, Claude Code, Cursor, or custom engines
+- 🔄 **Context Injection** - Automatically injects project context when launching engines
+- 📋 **Consistent Workflow** - Same project management regardless of which AI you use
 
 ### 📁 Project Management
-- Create projects with templates (React, Node, Python, etc.)
-- Import projects from GitHub, GitLab, ZIP files
-- Switch between projects instantly
-- Each project gets its own agents and context
+- **Create** projects with templates (React, Node.js, Python, React Native)
+- **Import** from GitHub, GitLab, local directories, or ZIP files
+- **Switch** between projects instantly
+- **Track** project status, git state, and AI engine associations
 
 ### 🤖 Agent System
-- Create specialized agents for different tasks
-- Attach skills to agents
-- Share agents between projects
-- Marketplace to download community agents
+- **Create** specialized agents for different tasks (frontend, backend, DevOps, etc.)
+- **Attach** skills to agents for reusable knowledge
+- **Share** agents between projects
+- **Marketplace** to discover community agents (coming soon)
 
 ### 🎯 Skills Library
-Skills are reusable abilities agents can learn:
+Skills are reusable "abilities" agents can learn:
 - `react-patterns` - React best practices
-- `api-design` - RESTful API design
+- `api-design` - RESTful API principles  
 - `testing-strategies` - Testing patterns
-- `security-essentials` - Security practices
-- Create your own skills and share them
+- Create and share your own skills
 
-### 📥 Project Import
-Import from anywhere:
-- GitHub/GitLab repositories
-- Local directories
-- ZIP archives
-- Other POPPY workspaces
+### 📊 Analytics & Daily Focus
+- Set daily focus and priorities
+- Track project activity
+- View work logs
 
 ---
 
-## 📂 Menu Structure (Clean & Collapsible)
+## 📂 Menu Structure
 
 ```
-POPPY Main Menu (8 options - no scrolling!)
-│
-├── ▶ Launch AI Engine
-│   ├── 🐶 Code Puppy
-│   ├── 🔷 Codex (if installed)
-│   ├── 🟣 Claude Code (if installed)
-│   └── 🟢 Cursor (if installed)
-│
-├── ➕ New Project
+POPPY Main Menu
 │
 ├── 📁 Projects
 │   ├── ➕ Create New Project
-│   ├── 📥 Import Project ← NEW!
-│   ├── 📁 Manage Projects
-│   └── 🚀 Quick Launch
+│   ├── 📁 My Projects
+│   ├── 📥 Import Project
+│   └── 🔄 Sync from AI Engines
 │
 ├── 🤖 Agents
-│   ├── 🤖 My Agents
-│   └── ➕ Create Agent
+│   ├── ➕ Create Agent
+│   ├── 📁 My Agents
+│   └── 🔄 Sync from AI Engines
 │
-├── 🎯 Skills ← NEW!
-│   ├── 🎯 My Skills
+├── 🎯 Skills
 │   ├── ➕ Create Skill
-│   ├── 📚 Browse Library
-│   ├── ⬇️  Install Skill
-│   └── 🔗 Attach to Agent
+│   ├── 📁 My Skills
+│   ├── ➕ Attach to Agent
+│   └── 🔄 Sync from AI Engines
 │
 ├── 🔐 API Keys
+│   └── Manage API Keys (OpenAI, Anthropic, etc.)
 │
 ├── 🔀 Git
+│   ├── 📊 Status
+│   ├── ⬆️  Push Changes
+│   └── ⚙️  Configuration
 │
 ├── ⚙️  System
 │   ├── ⚙️  Settings
 │   ├── 📅 Daily Focus
 │   ├── 📋 View Log
-│   └── 🤖 Agent Settings
+│   └── 📊 Analytics
 │
 └── ✕ Exit
 ```
 
 ---
 
-## 🎯 Working with Skills
+## 🏗️ Architecture
 
-Skills are reusable "abilities" that agents can learn.
+POPPY is designed as a **management layer** that sits above your AI engines:
+
+```
+┌─────────────────────────────────────────┐
+│           POPPY (Manager Layer)         │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐  │
+│  │ Projects│ │ Agents  │ │  APIs   │  │
+│  │ Skills  │ │Marketplace│ │ Analytics│  │
+│  └────┬────┘ └────┬────┘ └────┬────┘  │
+│       └─────────────┴─────────────┘     │
+│              Engine Manager              │
+└─────────────────┬──────────────────────┘
+                  │
+    ┌─────────────┼─────────────┐
+    │             │             │
+┌───▼────┐   ┌───▼────┐   ┌───▼────┐
+│ Codex  │   │ Claude │   │ Cursor │
+│(OpenAI)│   │(Anthro)│   │(Editor)│
+└────────┘   └────────┘   └────────┘
+```
+
+### How It Works
+
+1. **Engine Detection** - POPPY scans for installed AI engines
+2. **Context Injection** - When launching an engine, POPPY writes context files:
+   - For Codex: Creates `.codex` instructions
+   - For Claude: Creates `CLAUDE.md` 
+   - For Cursor: Creates `.cursorrules`
+3. **Unified Interface** - Same workflow regardless of which engine you use
+
+### Data Storage
+
+POPPY stores configuration in `~/.poppy/`:
+```
+~/.poppy/
+├── config.json           # Settings
+├── api-keys.enc          # Encrypted API keys
+├── agents/               # Downloaded agents
+├── skills/               # Installed skills
+└── projects.json         # Project registry
+```
+
+Projects are stored in your workspace directory:
+```
+POPPY/
+├── P1/                   # Project folders
+├── P2/
+├── P3/
+├── agents/               # Custom agents
+└── admin/                # POPPY system
+```
+
+---
+
+## 📥 Importing Projects
+
+POPPY can import projects from anywhere:
+
+### From GitHub/GitLab
+```bash
+poppy
+→ Projects
+→ Import Project
+→ GitHub / GitLab
+→ Enter URL: https://github.com/user/repo
+```
+
+### From Local Directory
+```bash
+poppy
+→ Projects
+→ Import Project
+→ Local Directory
+→ Enter path: /path/to/project
+```
+
+### From ZIP File
+```bash
+poppy
+→ Projects
+→ Import Project
+→ ZIP Archive
+→ Select ZIP file
+```
+
+---
+
+## 🎯 Working with Skills
 
 ### Create a Skill
 ```bash
@@ -126,8 +210,7 @@ poppy
 → Create Skill
 → Name: react-patterns
 → Category: Frontend
-→ Content: [editor opens for knowledge, patterns, rules]
-→ Done! Skill created
+→ Content: [knowledge, patterns, rules]
 ```
 
 ### Attach Skill to Agent
@@ -137,87 +220,6 @@ poppy
 → Attach to Agent
 → Select skill: react-patterns
 → Select agent: Frontend Expert
-→ Done! Agent now knows React patterns
-```
-
-### Install from Library
-```bash
-poppy
-→ Skills
-→ Install Skill
-→ Browse Library
-→ Select: api-design, testing-strategies
-→ Done! Skills installed
-```
-
----
-
-## 📥 Importing Projects
-
-### From GitHub/GitLab/Bitbucket
-```bash
-poppy
-→ Projects
-→ Import Project
-→ GitHub / GitLab / Bitbucket
-→ Enter URL: https://github.com/user/repo
-→ Done! Project imported and tracked in POPPY
-```
-
-### From Local Directory
-```bash
-poppy
-→ Projects
-→ Import Project
-→ Local Directory
-→ Enter path: C:\Users\me\my-project
-→ Done! Project copied and added to POPPY
-```
-
-### From ZIP File
-```bash
-poppy
-→ Projects
-→ Import Project
-→ ZIP Archive
-→ Enter path: C:\Downloads\project.zip
-→ Done! Extracted and added to POPPY
-```
-
-### From Another POPPY Workspace
-```bash
-poppy
-→ Projects
-→ Import Project
-→ POPPY Workspace
-→ Enter path: C:\Users\other\PersonalAI
-→ Select project from list
-→ Done! Project + agents imported
-```
-
----
-
-## 📁 Your Data
-
-POPPY stores your data in `~/.poppy/`:
-```
-~/.poppy/
-├── config.json           # Your settings
-├── api-keys.enc          # Encrypted API keys
-├── skills/               # Your skills
-├── agents/               # Downloaded agents
-├── projects/             # Project metadata
-└── communication/        # Agent messages
-```
-
-Projects are stored in your workspace:
-```
-PersonalAI/
-├── P1/                   # Your projects
-├── P2/
-├── P3/
-├── agents/               # Shared agents
-└── admin/                # POPPY system
 ```
 
 ---
@@ -230,12 +232,11 @@ poppy
 → API Keys
 → Manage API Keys
 → Add keys for OpenAI, Anthropic, etc.
-→ Keys encrypted and stored securely
 ```
 
 Keys are:
-- ✅ Encrypted at rest
-- ✅ Never exposed to agents
+- ✅ Encrypted at rest using AES-256
+- ✅ Never exposed to agents or logged
 - ✅ Used only by POPPY to launch engines
 
 ---
@@ -245,19 +246,22 @@ Keys are:
 **Morning:**
 ```bash
 poppy → System → Daily Focus
-→ Select today's projects
-→ Set focus and priority
+→ Select today's priority projects
+→ Set focus areas
 ```
 
 **Work:**
 ```bash
-poppy → Launch AI Engine → Code Puppy
-→ Work on project with agent
+poppy → Projects → My Projects
+→ Select project
+→ Choose AI engine to launch
+→ Start coding with injected context
 ```
 
 **End of Day:**
 ```bash
 poppy → System → View Log
+→ Review what was accomplished
 → Git → Commit Changes
 ```
 
@@ -266,32 +270,69 @@ poppy → System → View Log
 ## 🌐 Supported Systems
 
 **AI Engines:**
-- ✅ Code Puppy
 - ✅ OpenAI Codex
 - ✅ Anthropic Claude Code
 - ✅ Cursor
+- ✅ Custom engines (extensible)
 
 **Git Providers:**
 - ✅ GitHub
 - ✅ GitLab
 - ✅ Bitbucket
 
-**Import Sources:**
-- ✅ Git repositories
-- ✅ Local directories
-- ✅ ZIP archives
-- ✅ POPPY workspaces
+**Platforms:**
+- ✅ Windows 10/11
+- ✅ macOS
+- ✅ Linux
 
 ---
 
-## 🛠️ Installation Troubleshooting
+## 📄 Documentation
+
+- **[ARCHITECTURE.md](admin/ARCHITECTURE.md)** - System architecture and design
+- **[DUAL-REPO-SETUP.md](DUAL-REPO-SETUP.md)** - For contributors (setup details)
+- **[WORKFLOW.md](WORKFLOW.md)** - Development workflow guide
+- **[QUICKSTART.md](QUICKSTART.md)** - Quick reference
+
+---
+
+## 🤝 Contributing
+
+POPPY is open source! We welcome contributions:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'feat: add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+See [WORKFLOW.md](WORKFLOW.md) for detailed contribution guidelines.
+
+---
+
+## 🆚 POPPY vs POPPY-MAXIM
+
+| Feature | POPPY (This Repo) | POPPY-MAXIM (Creator) |
+|---------|-------------------|----------------------|
+| **Visibility** | 🌐 Public | 🔒 Private |
+| **Use Case** | Template for users | Maxim's daily workspace |
+| **Analytics** | Personal only | Personal + Global (Creator Dashboard) |
+| **Projects** | Empty template | Actual projects |
+| **Purpose** | Community tool | Creator's personal version |
+
+**POPPY** is the open-source template that anyone can clone and use.
+
+**POPPY-MAXIM** is the private creator version with global analytics.
+
+---
+
+## 🛠️ Troubleshooting
 
 ### "poppy" command not found
-```cmd
-# Re-run setup
-SETUP_POPPY.cmd
-
-# Or restart terminal
+```bash
+# Windows: Add to PATH or restart terminal
+# Mac/Linux: Source your shell config
+source ~/.bashrc  # or ~/.zshrc
 ```
 
 ### Need to reset POPPY
@@ -300,12 +341,25 @@ SETUP_POPPY.cmd
 rm ~/.poppy/config.json
 ```
 
+### Installation issues
+See [SETUP_POPPY.cmd](admin/SETUP_POPPY.cmd) (Windows) or [install.sh](admin/install.sh) (Mac/Linux).
+
 ---
 
 ## 📄 License
 
-MIT License
+MIT License - See [LICENSE](admin/LICENSE)
 
 ---
 
-**Ready? Run `SETUP_POPPY.cmd` and type `poppy`!** 🚀
+## 🙏 Credits
+
+Created by **Maxim Tsitolovsky** - Inspired by the need for a unified AI workspace.
+
+**Ready? Run `poppy` and start organizing your AI workflow!** 🚀
+
+---
+
+<p align="center">
+  🐶 <strong>POPPY</strong> - Organize Your AI Workspace
+</p>
