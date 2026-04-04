@@ -95,9 +95,13 @@ function isCreatorVersion() {
   try {
     // Check for creator marker file
     const fs = require('fs');
-    fs.accessSync(path.join(path.dirname(__dirname), '.creator'));
+    const creatorPath = path.join(path.dirname(__dirname), '.creator');
+    console.log('DEBUG: Checking for .creator at:', creatorPath);
+    fs.accessSync(creatorPath);
+    console.log('DEBUG: .creator found!');
     return true;
-  } catch {
+  } catch(e) {
+    console.log('DEBUG: .creator not found, error:', e.message);
     return false;
   }
 }
@@ -6103,22 +6107,6 @@ async function showUserAnalytics() {
 // ═══════════════════════════════════════════════════════════
 
 async function showCreatorAnalytics() {
-function isCreatorVersion() {
-  try {
-    // Check for creator flag in package.json or special file
-    const packagePath = path.join(ROOT_DIR, 'package.json');
-    const pkg = JSON.parse(fsSync.readFileSync(packagePath, 'utf8'));
-    return pkg.name === 'poppy-maxim' || pkg.creator === true;
-  } catch {
-    // Check for creator marker file
-    try {
-      fsSync.accessSync(path.join(ROOT_DIR, '.creator'));
-      return true;
-    } catch {
-      return false;
-    }
-  }
-}
 
 // Load global analytics (aggregated from all users)
 async function loadGlobalAnalytics() {
