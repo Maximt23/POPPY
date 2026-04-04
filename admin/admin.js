@@ -6106,7 +6106,7 @@ async function showUserAnalytics() {
 // 👑 CREATOR ANALYTICS (Maxim's Private Version Only)
 // ═══════════════════════════════════════════════════════════
 
-async function showCreatorAnalytics() {
+async function _emptyPlaceholder() {
 
 // Load global analytics (aggregated from all users)
 async function loadGlobalAnalytics() {
