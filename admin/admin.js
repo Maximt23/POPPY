@@ -93,9 +93,17 @@ function showHeader() {
 
 // 👑 Check if this is the creator version (for analytics)
 function isCreatorVersion() {
+  // Check environment variable first (set by poppy-maxim.cmd)
+  if (process.env.POPPY_MODE === "creator") {
+    return true;
+  }
+  // Production mode should NOT show creator features
+  if (process.env.POPPY_MODE === "production") {
+    return false;
+  }
+  // Fallback: check for .creator file
   try {
-    // Check for creator marker file
-    const creatorPath = path.join(path.dirname(__dirname), '.creator');
+    const creatorPath = path.join(path.dirname(__dirname), ".creator");
     fsSync.accessSync(creatorPath);
     return true;
   } catch {
