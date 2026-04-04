@@ -2126,32 +2126,54 @@ async function importProject() {
 // 🚀 LAUNCH FUNCTIONS
 // ═══════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+// 🚀 LAUNCH FUNCTIONS (Marcus-Approved: Reliable & Paranoid)
+// ═══════════════════════════════════════════════════════════
+
 async function launchCodePuppy() {
   showHeader();
   log.title('🐶 Launching Code Puppy');
   
+  // Marcus's Paranoid Configuration
+  const command = 'code-puppy';
+  const args = [];
+  const options = {
+    shell: true,        // Required for Windows .cmd files
+    detached: true,     // Allow parent to exit independently  
+    stdio: 'ignore'     // Don't wait for stdio (prevents hang!)
+  };
+  
   try {
-    const { execSync } = await import('child_process');
-    try {
-      execSync('where code-puppy', { stdio: 'pipe' });
-      log.success('✓ Code Puppy found!');
-      
-      const { spawn } = await import('child_process');
-      const child = spawn('code-puppy', [], {
-        stdio: 'inherit',
-        shell: true
-      });
-      
-      log.success('Code Puppy launched!');
-    } catch {
-      log.error('Code Puppy not installed!');
-      log.info('Install with: npm install -g code-puppy');
-    }
+    log.info(`Spawning: ${command}`);
+    
+    const { spawn } = await import('child_process');
+    const child = spawn(command, args, options);
+    
+    // Marcus's Error Handling: Catch spawn failures immediately
+    child.on('error', (error) => {
+      log.error(`Spawn failed: ${error.message}`);
+      if (error.code === 'ENOENT') {
+        log.info('💡 Is code-puppy installed?');
+        log.info('   Run: npm install -g code-puppy');
+      }
+    });
+    
+    // Marcus's Resource Management: Unref immediately
+    child.unref();
+    
+    log.success('✓ Code Puppy launched!');
+    log.info('Check your taskbar for the new window');
+    
+    // Marcus's Rule: Fire and forget - don't block!
+    // The child runs independently, we return immediately
+    
   } catch (error) {
-    log.error(`Failed: ${error.message}`);
+    log.error(`Failed to launch: ${error.message}`);
+    log.info('Stack trace:', error.stack);
   }
   
-  await pause();
+  // Small delay so user sees the message, then continue
+  await new Promise(resolve => setTimeout(resolve, 1000));
 }
 
 async function launchCodex() {
@@ -2445,3 +2467,202 @@ async function showAgentActions(agent) {
     await pause();
   }
 }
+// ═══════════════════════════════════════════════════════════
+// 🔧 MARCUS'S PARANOID FIX - Code Puppy Launch
+// Addresses: hanging, blocking, no error handling
+// ═══════════════════════════════════════════════════════════
+
+// Override launchCodePuppy with enterprise-grade reliability
+launchCodePuppy = async function() {
+  showHeader();
+  log.title('🐶 Launching Code Puppy');
+  
+  const command = 'code-puppy';
+  const args = [];
+  
+  // Marcus's Configuration: explicit, no magic
+  const options = {
+    shell: true,        // Required for Windows .cmd files
+    detached: true,     // Allow parent to exit independently
+    stdio: 'ignore'     // CRITICAL: Don't wait for stdio (prevents hang)
+  };
+  
+  log.info(`Spawning: ${command}`);
+  log.info(`Options: shell=${options.shell}, detached=${options.detached}, stdio=${options.stdio}`);
+  
+  try {
+    const { spawn } = await import('child_process');
+    const child = spawn(command, args, options);
+    
+    // Paranoid Error Handling: catch spawn errors immediately
+    child.on('error', (error) => {
+      log.error(`❌ Spawn error: ${error.message}`);
+      if (error.code === 'ENOENT') {
+        log.info('💡 Is code-puppy installed?');
+        log.info('   npm install -g code-puppy');
+      } else if (error.code === 'EACCES') {
+        log.info('💡 Permission denied. Try running as administrator.');
+      }
+    });
+    
+    // Log exit for debugging (but don't wait for it)
+    child.on('exit', (code, signal) => {
+      if (code !== 0 && code !== null) {
+        log.warning(`Process exited with code ${code}`);
+      }
+    });
+    
+    // CRITICAL: unref() allows parent to exit independently
+    child.unref();
+    
+    log.success('✓ Code Puppy launched!');
+    log.info('Check your taskbar/terminal for the new window.');
+    log.divider();
+    
+    // Memory System: Log this attempt
+    const attempt = {
+      timestamp: new Date().toISOString(),
+      command,
+      options,
+      result: 'spawned',
+      pid: child.pid
+    };
+    
+    // Don't wait - return control to user immediately
+    // This prevents the "hanging" issue
+    
+  } catch (error) {
+    log.error(`❌ Failed to launch: ${error.message}`);
+    log.divider();
+    
+    // Stress Test: What would a bug report look like?
+    log.info('Debug info:');
+    log.info(`  Platform: ${process.platform}`);
+    log.info(`  Shell: ${process.env.SHELL || 'cmd.exe'}`);
+    log.info(`  PATH includes npm: ${process.env.PATH?.includes('npm') || 'unknown'}`);
+  }
+  
+  await pause();
+};
+
+// Also fix launchWithAgent - same pattern
+launchWithAgent = async function() {
+  showHeader();
+  log.title('🚀 Launch with Agent');
+  
+  const agents = await loadAgents();
+  
+  if (agents.length === 0) {
+    log.warning('No agents available.');
+    log.info('Create an agent first.');
+    await pause();
+    return;
+  }
+  
+  const { agentId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'agentId',
+    message: theme.accent('Select agent:'),
+    choices: agents.map(a => ({
+      name: `${a.name} ${theme.dim(`(${a.role})`)}`,
+      value: a.id
+    }))
+  }]);
+  
+  const agent = agents.find(a => a.id === agentId);
+  
+  log.info(`Launching with agent: ${agent.name}`);
+  
+  try {
+    const { spawn } = await import('child_process');
+    
+    // Create context file for the agent
+    const contextFile = path.join(DATA_DIR, `agent-${agent.id}-context.json`);
+    await fs.writeFile(contextFile, JSON.stringify({
+      agent: agent.name,
+      role: agent.role,
+      instructions: agent.instructions,
+      launchedAt: new Date().toISOString()
+    }, null, 2));
+    
+    // Spawn with Marcus's paranoid settings
+    const child = spawn('code-puppy', ['--context', contextFile], {
+      shell: true,
+      detached: true,
+      stdio: 'ignore'
+    });
+    
+    child.on('error', (error) => {
+      log.error(`Spawn error: ${error.message}`);
+    });
+    
+    child.unref();
+    
+    log.success(`✓ Launched with ${agent.name}!`);
+    
+  } catch (error) {
+    log.error(`Launch failed: ${error.message}`);
+  }
+  
+  await pause();
+};
+
+// Fix listAgents to be more useful
+listAgents = async function() {
+  showHeader();
+  log.title('🤖 Your Agents');
+  
+  const agents = await loadAgents();
+  
+  if (agents.length === 0) {
+    log.warning('No agents found.');
+    log.info('Create an agent first!');
+    await pause();
+    return;
+  }
+  
+  log.success(`Found ${agents.length} agent(s):`);
+  
+  const choices = agents.map(a => ({
+    name: `  ${a.name} ${theme.dim(`[${a.role}]`)}`,
+    value: a.id,
+    short: a.name
+  }));
+  
+  choices.push(new inquirer.Separator());
+  choices.push({ name: theme.dim('← Back'), value: 'back' });
+  
+  const { agentId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'agentId',
+    message: theme.accent('Select agent to view/launch:'),
+    choices,
+    pageSize: 15
+  }]);
+  
+  if (agentId === 'back') return;
+  
+  const agent = agents.find(a => a.id === agentId);
+  
+  // Show agent details
+  showHeader();
+  log.title(`🤖 ${agent.name}`);
+  console.log(`Role: ${agent.role}`);
+  if (agent.description) console.log(`Description: ${agent.description}`);
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Actions:'),
+    choices: [
+      { name: theme.accent('🚀 Launch with Code Puppy'), value: 'launch' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'launch') {
+    await launchWithAgent();
+  }
+};

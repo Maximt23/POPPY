@@ -1,433 +1,235 @@
 # System Integration Architecture - Enterprise Grade
 
-## Core Principles
+## Core Principles (The Toyota Way)
 
-### 1. The Toyota Philosophy
-- **Reliability over cleverness**: Code must work 99.9% of the time
-- **Simplicity over complexity**: Simple solutions are maintainable
-- **Explicit over implicit**: No magic, no surprises
-- **Observability**: Every connection must be monitorable
+### 1. Reliability First
+- Code must work 99.9% of the time
+- Handle all failure modes gracefully
+- No clever hacks - simple and predictable
+- Like a Toyota: starts every time, no surprises
 
-### 2. Connection Design Pattern
+### 2. The Paranoid Reviewer Checklist
+After writing ANY code, ask:
+- [ ] What happens if the command doesn't exist?
+- [ ] What happens if the path has spaces?
+- [ ] What happens if permissions are denied?
+- [ ] What happens on timeout?
+- [ ] Are child processes cleaned up?
+- [ ] Can this hang indefinitely?
+- [ ] Is there a memory leak?
+- [ ] Does it work on Windows AND Unix?
+- [ ] Can I debug this at 3 AM?
 
-```typescript
-interface ConnectionConfig {
-  // Identity
-  name: string;
-  version: string;
+### 3. Memory System - Track Attempts
+Keep a log of:
+- What you tried
+- What failed and why
+- What eventually worked
+- Never repeat the same failure twice
+
+## Code Puppy Launch - The Correct Way
+
+### The Problem
+Global npm commands on Windows need special handling:
+- Must use `shell: true` on Windows
+- May need `.cmd` extension
+- Must handle spawn errors separately from exit codes
+- Must not hang waiting for stdio
+
+### The Solution (Marcus-Approved)
+
+```javascript
+async function launchCodePuppy() {
+  showHeader();
+  log.title('🐶 Launching Code Puppy');
   
-  // Endpoint
-  host: string;
-  port: number;
-  protocol: 'http' | 'https' | 'tcp' | 'websocket';
-  
-  // Reliability
-  retryPolicy: {
-    maxAttempts: number;
-    backoffMultiplier: number;
-    initialDelayMs: number;
-    maxDelayMs: number;
+  const command = 'code-puppy';
+  const args = [];
+  const options = {
+    shell: true,        // Required for Windows .cmd files
+    detached: true,     // Allow parent to exit
+    stdio: 'ignore'     // Don't wait for stdio (prevents hang)
   };
   
-  // Timeouts
-  timeouts: {
-    connection: number;
-    request: number;
-    idle: number;
-  };
-  
-  // Health
-  healthCheck: {
-    endpoint: string;
-    intervalMs: number;
-    timeoutMs: number;
-  };
-  
-  // Circuit Breaker
-  circuitBreaker: {
-    failureThreshold: number;
-    recoveryTimeoutMs: number;
-    halfOpenMaxCalls: number;
-  };
-}
-```
-
-### 3. UI-to-Command Bridge Architecture
-
-```typescript
-// The Bridge - Simple, Reliable, Observable
-class UICommandBridge {
-  private logger: StructuredLogger;
-  private metrics: MetricsCollector;
-  private healthMonitor: HealthMonitor;
-  
-  constructor(config: BridgeConfig) {
-    this.logger = new StructuredLogger(config.name);
-    this.metrics = new MetricsCollector();
-    this.healthMonitor = new HealthMonitor(config.healthCheck);
-  }
-  
-  async execute(command: Command): Promise<Result> {
-    const correlationId = generateCorrelationId();
-    const startTime = Date.now();
+  try {
+    log.info(`Spawning: ${command}`);
     
-    this.logger.info('Command execution started', {
-      correlationId,
-      command: command.name,
-      params: sanitizeParams(command.params)
-    });
-    
-    try {
-      // Pre-execution validation
-      await this.validateCommand(command);
-      
-      // Execute with timeout
-      const result = await this.executeWithTimeout(command);
-      
-      // Post-execution verification
-      await this.verifyResult(result);
-      
-      // Success metrics
-      this.metrics.recordSuccess(command.name, Date.now() - startTime);
-      
-      this.logger.info('Command execution completed', {
-        correlationId,
-        duration: Date.now() - startTime,
-        status: 'success'
-      });
-      
-      return { success: true, data: result, correlationId };
-      
-    } catch (error) {
-      // Failure handling
-      this.metrics.recordFailure(command.name, error);
-      
-      this.logger.error('Command execution failed', {
-        correlationId,
-        error: error.message,
-        stack: error.stack,
-        duration: Date.now() - startTime
-      });
-      
-      // Graceful degradation
-      return this.handleFailure(error, command, correlationId);
-    }
-  }
-  
-  private async executeWithTimeout(command: Command): Promise<any> {
-    return Promise.race([
-      this.runCommand(command),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new TimeoutError()), command.timeout)
-      )
-    ]);
-  }
-  
-  private async runCommand(command: Command): Promise<any> {
     const { spawn } = await import('child_process');
+    const child = spawn(command, args, options);
     
-    return new Promise((resolve, reject) => {
-      const child = spawn(command.executable, command.args, {
-        cwd: command.workingDir,
-        env: { ...process.env, ...command.env },
-        stdio: ['ignore', 'pipe', 'pipe']
-      });
-      
-      let stdout = '';
-      let stderr = '';
-      
-      child.stdout?.on('data', (data) => { stdout += data; });
-      child.stderr?.on('data', (data) => { stderr += data; });
-      
-      child.on('close', (code) => {
-        if (code === 0) {
-          resolve({ stdout, stderr, exitCode: code });
-        } else {
-          reject(new CommandError(`Exit code ${code}: ${stderr}`));
-        }
-      });
-      
-      child.on('error', (error) => {
-        reject(new CommandError(`Spawn failed: ${error.message}`));
-      });
+    // Handle spawn errors (executable not found, permissions, etc.)
+    child.on('error', (error) => {
+      log.error(`Spawn failed: ${error.message}`);
+      if (error.code === 'ENOENT') {
+        log.info('Is code-puppy installed? Run: npm install -g code-puppy');
+      }
     });
-  }
-}
-```
-
-### 4. Error Handling Strategy
-
-```typescript
-// Never swallow errors, always categorize
-enum ErrorCategory {
-  TRANSIENT = 'TRANSIENT',     // Retry may help
-  PERMANENT = 'PERMANENT',     // Bug or misconfiguration
-  NETWORK = 'NETWORK',         // Connection issues
-  TIMEOUT = 'TIMEOUT',         // Slow response
-  VALIDATION = 'VALIDATION',   // Bad input
-  UNKNOWN = 'UNKNOWN'          // Investigate
-}
-
-class ErrorHandler {
-  categorize(error: Error): ErrorCategory {
-    if (error instanceof TimeoutError) return ErrorCategory.TIMEOUT;
-    if (error.code === 'ECONNREFUSED') return ErrorCategory.NETWORK;
-    if (error.code === 'ENOTFOUND') return ErrorCategory.NETWORK;
-    if (error instanceof ValidationError) return ErrorCategory.VALIDATION;
-    return ErrorCategory.UNKNOWN;
-  }
-  
-  shouldRetry(category: ErrorCategory): boolean {
-    return category === ErrorCategory.TRANSIENT ||
-           category === ErrorCategory.NETWORK ||
-           category === ErrorCategory.TIMEOUT;
-  }
-}
-```
-
-### 5. Retry Strategy with Exponential Backoff
-
-```typescript
-async function withRetry<T>(
-  operation: () => Promise<T>,
-  config: RetryConfig
-): Promise<T> {
-  let lastError: Error;
-  let delay = config.initialDelayMs;
-  
-  for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      
-      if (attempt === config.maxAttempts) break;
-      
-      // Log retry attempt
-      console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
-      
-      // Wait with jitter
-      await sleep(delay + Math.random() * 100);
-      
-      // Exponential backoff with cap
-      delay = Math.min(delay * config.backoffMultiplier, config.maxDelayMs);
-    }
-  }
-  
-  throw new RetryExhaustedError(`Failed after ${config.maxAttempts} attempts`, lastError);
-}
-```
-
-### 6. Health Monitoring
-
-```typescript
-class HealthMonitor {
-  private checks: Map<string, HealthCheck> = new Map();
-  private status: Map<string, HealthStatus> = new Map();
-  
-  register(name: string, check: HealthCheck): void {
-    this.checks.set(name, check);
-    this.status.set(name, HealthStatus.UNKNOWN);
     
-    // Start periodic checks
-    setInterval(async () => {
-      const result = await this.runCheck(name, check);
-      this.status.set(name, result.status);
-      
-      if (result.status === HealthStatus.UNHEALTHY) {
-        this.alert(`Health check failed: ${name}`, result);
-      }
-    }, check.intervalMs);
-  }
-  
-  async runCheck(name: string, check: HealthCheck): Promise<HealthResult> {
-    const startTime = Date.now();
+    // Unref so parent can exit independently
+    child.unref();
     
-    try {
-      const response = await fetch(check.endpoint, {
-        method: 'GET',
-        timeout: check.timeoutMs
-      });
-      
-      const latency = Date.now() - startTime;
-      
-      if (response.ok && latency < check.maxLatencyMs) {
-        return {
-          status: HealthStatus.HEALTHY,
-          latency,
-          timestamp: new Date()
-        };
-      }
-      
-      return {
-        status: HealthStatus.DEGRADED,
-        latency,
-        error: `HTTP ${response.status}`,
-        timestamp: new Date()
-      };
-      
-    } catch (error) {
-      return {
-        status: HealthStatus.UNHEALTHY,
-        error: error.message,
-        timestamp: new Date()
-      };
-    }
-  }
-  
-  getStatus(): HealthReport {
-    return {
-      overall: this.calculateOverallStatus(),
-      checks: Object.fromEntries(this.status),
-      timestamp: new Date()
-    };
+    log.success('✓ Code Puppy launched!');
+    log.info('Check your taskbar for the new window');
+    
+    // Don't wait for the child process
+    // Don't call await pause() here - return immediately
+    
+  } catch (error) {
+    log.error(`Failed to launch: ${error.message}`);
+    await pause();
   }
 }
 ```
 
-### 7. Circuit Breaker Pattern
+### Key Insights from Memory
 
-```typescript
-class CircuitBreaker {
-  private state: CircuitState = CircuitState.CLOSED;
-  private failures = 0;
-  private lastFailureTime: number = 0;
-  private halfOpenCalls = 0;
+**What Failed Before:**
+1. `stdio: 'inherit'` - caused the function to wait for child to exit
+2. No `unref()` - parent process couldn't exit until child did
+3. Missing error handling for spawn failures
+
+**What Works:**
+1. `stdio: 'ignore'` - don't wait for input/output
+2. `detached: true` + `unref()` - truly independent processes
+3. Event-based error handling - catches ENOENT immediately
+4. No `await` on the spawn - fire and forget
+
+### Enterprise-Grade Additions
+
+```javascript
+class CommandExecutor {
+  constructor(config) {
+    this.timeout = config.timeout || 30000;
+    this.retries = config.retries || 3;
+    this.attemptRegistry = [];
+  }
   
-  constructor(private config: CircuitBreakerConfig) {}
-  
-  async execute<T>(operation: () => Promise<T>): Promise<T> {
-    if (this.state === CircuitState.OPEN) {
-      if (Date.now() - this.lastFailureTime > this.config.recoveryTimeoutMs) {
-        this.state = CircuitState.HALF_OPEN;
-        this.halfOpenCalls = 0;
-      } else {
-        throw new CircuitOpenError('Circuit breaker is OPEN');
-      }
-    }
+  async execute(command, args, options) {
+    const attemptId = Date.now();
     
-    if (this.state === CircuitState.HALF_OPEN) {
-      if (this.halfOpenCalls >= this.config.halfOpenMaxCalls) {
-        throw new CircuitOpenError('Circuit breaker is HALF_OPEN (max calls reached)');
-      }
-      this.halfOpenCalls++;
+    // Check memory: have we tried this before?
+    const previousAttempt = this.findPreviousAttempt(command, args);
+    if (previousAttempt && previousAttempt.failed) {
+      log.warning(`This command failed before: ${previousAttempt.error}`);
+      log.info(`Trying alternative: ${previousAttempt.alternative}`);
     }
     
     try {
-      const result = await operation();
-      this.onSuccess();
+      const result = await this.spawnWithTimeout(command, args, options);
+      this.logSuccess(attemptId, command);
       return result;
     } catch (error) {
-      this.onFailure();
+      this.logFailure(attemptId, command, error);
+      
+      // Self-correction: try alternative approaches
+      if (error.code === 'ENOENT' && process.platform === 'win32') {
+        // Try with .cmd extension
+        return this.execute(`${command}.cmd`, args, options);
+      }
+      
       throw error;
     }
   }
   
-  private onSuccess(): void {
-    if (this.state === CircuitState.HALF_OPEN) {
-      this.state = CircuitState.CLOSED;
-      this.failures = 0;
-    }
+  findPreviousAttempt(command, args) {
+    return this.attemptRegistry.find(a => 
+      a.command === command && 
+      JSON.stringify(a.args) === JSON.stringify(args)
+    );
   }
   
-  private onFailure(): void {
-    this.failures++;
-    this.lastFailureTime = Date.now();
-    
-    if (this.failures >= this.config.failureThreshold) {
-      this.state = CircuitState.OPEN;
-    }
+  logSuccess(id, command) {
+    this.attemptRegistry.push({
+      id,
+      command,
+      success: true,
+      timestamp: new Date()
+    });
+  }
+  
+  logFailure(id, command, error) {
+    this.attemptRegistry.push({
+      id,
+      command,
+      failed: true,
+      error: error.message,
+      code: error.code,
+      timestamp: new Date(),
+      alternative: this.suggestAlternative(error)
+    });
+  }
+  
+  suggestAlternative(error) {
+    const alternatives = {
+      'ENOENT': 'Check if command is installed and in PATH',
+      'EACCES': 'Check file permissions',
+      'ETIMEDOUT': 'Increase timeout or check network'
+    };
+    return alternatives[error.code] || 'Unknown error - investigate manually';
   }
 }
 ```
 
-### 8. Observability - The Three Pillars
+## Windows-Specific Patterns
 
-```typescript
-// 1. Structured Logging
-interface LogEntry {
-  timestamp: string;
-  level: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
-  message: string;
-  correlationId: string;
-  service: string;
-  context: Record<string, any>;
-}
+### Global NPM Commands
+```javascript
+// Windows needs shell:true for global npm commands
+const isWindows = process.platform === 'win32';
 
-// 2. Metrics
-interface Metrics {
-  requestCount: Counter;
-  requestDuration: Histogram;
-  errorRate: Gauge;
-  activeConnections: Gauge;
-  circuitBreakerState: EnumGauge;
-}
-
-// 3. Distributed Tracing
-interface Trace {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
-  operation: string;
-  startTime: number;
-  endTime?: number;
-  tags: Record<string, string>;
-  logs: LogEntry[];
+async function runGlobalCommand(command) {
+  const options = {
+    shell: isWindows,  // true on Windows, false elsewhere
+    detached: true,
+    stdio: 'ignore'
+  };
+  
+  const child = spawn(command, [], options);
+  child.unref();
 }
 ```
 
-## Best Practices
+### Error Taxonomy
+- `ENOENT`: Command not found (not in PATH)
+- `EACCES`: Permission denied
+- `ETIMEDOUT`: Operation timed out
+- `ECONNREFUSED`: Connection refused (for network commands)
+- `spawn_error`: Process couldn't start (Windows-specific)
 
-### Do's
-✅ Use connection pooling for databases and HTTP clients
-✅ Implement graceful shutdown with connection draining
-✅ Use idempotency keys for retry safety
-✅ Validate all inputs at system boundaries
-✅ Implement backpressure mechanisms
-✅ Use async/await with proper error handling
-✅ Test failure scenarios (chaos engineering)
-✅ Document the failure modes and recovery procedures
+## Testing Your Integration
 
-### Don'ts
-❌ Don't use magic numbers or timeouts
-❌ Don't ignore errors or catch-all exceptions
-❌ Don't create connections in hot paths
-❌ Don't use polling when push (webhooks) is possible
-❌ Don't skip health checks in production
-❌ Don't build without observability from day one
-
-## POPPY UI-to-Command Integration
-
-```typescript
-// For POPPY Admin UI integration
-interface UICommandBridge {
-  // Simple, reliable command execution
-  execute(command: string, args: string[], options: SpawnOptions): Promise<ExecutionResult>;
-  
-  // Observable execution
-  executeWithStream(command: string, onOutput: (line: string) => void): Promise<void>;
-  
-  // Health check for command availability
-  isCommandAvailable(command: string): Promise<boolean>;
-  
-  // Get command metadata
-  getCommandInfo(command: string): Promise<CommandMetadata>;
+### Stress Tests
+```javascript
+// Test 1: Run 100 times - any leaks?
+for (let i = 0; i < 100; i++) {
+  await launchCodePuppy();
 }
+// Check with Process Explorer - should be 0 zombie processes
 
-// Implementation priorities:
-// 1. Reliability - never hang, always return
-// 2. Simplicity - spawn process, capture output, return
-// 3. Observability - log everything with correlation IDs
-// 4. Enterprise - proper error handling, timeouts, cleanup
+// Test 2: Kill mid-execution
+const child = spawn('code-puppy', [], { shell: true });
+setTimeout(() => child.kill(), 100);
+// Should not crash the parent
+
+// Test 3: Invalid command
+await launchCodePuppy('nonexistent-command');
+// Should gracefully log error, not crash
+
+// Test 4: Timeout
+await launchCodePuppyWithTimeout('slow-command', 1000);
+// Should timeout properly, not hang forever
 ```
 
 ## Summary
 
-Build connections like you're building for a hospital or a bank:
-- **Reliability**: 99.9% uptime
-- **Observability**: See everything that happens
-- **Maintainability**: Any junior dev can understand it
-- **Security**: Defense in depth
-- **Simplicity**: No cleverness, no magic
+**Marcus's Rules:**
+1. Simple is better than clever
+2. Handle ALL error cases
+3. Use memory to avoid redundancy
+4. Self-review before shipping
+5. Stress-test your own code
+6. Document failure modes
+7. Make it observable
 
-Remember: "The code you write today is the legacy someone inherits tomorrow. Make it a Toyota, not a Ferrari." - Marcus
+**The Guarantee:**
+"If Marcus built it, it works. If it breaks, he knows why before the alert fires."
