@@ -5962,21 +5962,20 @@ async function saveItem(type, item) {
   await fs.writeFile(path.join(dir, filename), JSON.stringify(item, null, 2));
 }
 
-// Stub functions for original handlers
+// Stub functions for original handlers - cleaned up debug output
 async function handleOriginalAgentAction(action) {
-  // This would call the original agent menu logic
-  log.info(`Original action: ${action}`);
-  await pause();
+  // Call actual implementation
+  return await showAgentsMenu();
 }
 
 async function handleOriginalSkillAction(action) {
-  log.info(`Original action: ${action}`);
-  await pause();
+  // Call actual implementation
+  return await showSkillsMenu();
 }
 
 async function handleOriginalProjectAction(action) {
-  log.info(`Original action: ${action}`);
-  await pause();
+  // Call actual implementation
+  return await showProjectsMenu();
 }
 
 // ═══════════════════════════════════════════════════════════
