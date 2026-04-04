@@ -4128,3 +4128,212 @@ showSystemMenu = async function() {
     await pause();
   }
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🔧 MENU & API FIXES
+// 1. Remove Launch AI Engine from main menu
+// 2. Remove duplicate New Project from main menu  
+// 3. Properly detect API keys from Code Puppy, Git, etc.
+// ═══════════════════════════════════════════════════════════
+
+// FIX 1: Clean main menu - remove Launch AI Engine and duplicate New Project
+mainMenu = async function() {
+  showHeader();
+
+  const { category } = await inquirer.prompt([{
+    type: 'list',
+    name: 'category',
+    message: theme.primary('What would you like to do?'),
+    choices: [
+      { name: theme.primary('📁 Projects'), value: 'projects' },
+      { name: theme.primary('🤖 Agents'), value: 'agents' },
+      { name: theme.primary('🎯 Skills'), value: 'skills' },
+      { name: theme.info('🔐 API Keys'), value: 'api' },
+      { name: theme.warning('🔀 Git'), value: 'git' },
+      { name: theme.dim('⚙️  System'), value: 'system' },
+      new inquirer.Separator(),
+      { name: theme.error('✕ Exit'), value: 'exit' }
+    ],
+    pageSize: 12
+  }]);
+
+  if (category === 'exit') return 'exit';
+
+  let action;
+  switch (category) {
+    case 'projects': action = await showProjectsMenu(); break;
+    case 'agents': action = await showAgentsMenu(); break;
+    case 'skills': action = await showSkillsMenu(); break;
+    case 'api': action = await showApiMenu(); break;
+    case 'git': action = await showGitMenu(); break;
+    case 'system': action = await showSystemMenu(); break;
+  }
+
+  if (action === 'back') return await mainMenu();
+  return action;
+};
+
+// FIX 2: Properly detect API keys from ALL sources
+apiKeys = async function() {
+  showHeader();
+  log.title('🔐 API Key Management');
+  
+  // Try multiple ways to find API keys
+  const foundKeys = [];
+  
+  // 1. Check environment variables
+  const envVars = {
+    'OpenAI': process.env.OPENAI_API_KEY,
+    'Anthropic': process.env.ANTHROPIC_API_KEY,
+    'Google/Gemini': process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
+    'Fireworks AI': process.env.FIREWORKS_API_KEY,
+    'Groq': process.env.GROQ_API_KEY,
+    'GitHub': process.env.GITHUB_TOKEN
+  };
+  
+  for (const [name, value] of Object.entries(envVars)) {
+    if (value) {
+      foundKeys.push({ name, source: 'Environment', value: value.substring(0, 15) + '...' });
+    }
+  }
+  
+  // 2. Check .env file in PersonalAI
+  try {
+    const envPath = path.join(ROOT_DIR, '.env');
+    const envContent = await fs.readFile(envPath, 'utf8');
+    const envLines = envContent.split('\n');
+    
+    for (const line of envLines) {
+      if (line.includes('=')) {
+        const [key, val] = line.split('=');
+        if (val && val.trim()) {
+          const name = key.replace('_API_KEY', '').replace('_TOKEN', '');
+          if (!foundKeys.find(k => k.name.toLowerCase() === name.toLowerCase())) {
+            foundKeys.push({ name, source: '.env file', value: val.trim().substring(0, 15) + '...' });
+          }
+        }
+      }
+    }
+  } catch {}
+  
+  // 3. Check Code Puppy config locations
+  const configPaths = [
+    path.join(os.homedir(), '.code-puppy', 'config.json'),
+    path.join(os.homedir(), '.config', 'code-puppy', 'config.json'),
+    path.join(os.homedir(), 'code-puppy-config.json'),
+    path.join(os.homedir(), '.poppy', 'config.json'),
+    path.join(ROOT_DIR, 'config.json')
+  ];
+  
+  for (const configPath of configPaths) {
+    try {
+      const content = await fs.readFile(configPath, 'utf8');
+      const config = JSON.parse(content);
+      const keys = config.apiKeys || config.keys || {};
+      
+      for (const [key, value] of Object.entries(keys)) {
+        if (value && !foundKeys.find(k => k.name.toLowerCase() === key.toLowerCase())) {
+          foundKeys.push({ name: key, source: 'Code Puppy', value: value.substring(0, 15) + '...' });
+        }
+      }
+    } catch {}
+  }
+  
+  // Display results
+  if (foundKeys.length === 0) {
+    log.warning('No API keys found.');
+    log.info('Searched:');
+    log.info('  - Environment variables');
+    log.info('  - .env file in PersonalAI folder');
+    log.info('  - Code Puppy config files');
+  } else {
+    log.success(`Found ${foundKeys.length} API key(s):`);
+    log.divider();
+    for (const key of foundKeys) {
+      console.log(`  ${theme.success('✓')} ${key.name.padEnd(18)} ${theme.dim(`[${key.source}]`)}`);
+    }
+    log.divider();
+  }
+  
+  // Menu
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Actions:'),
+    choices: [
+      { name: theme.accent('➕ Add New Key'), value: 'add' },
+      { name: theme.info('📋 View Details'), value: 'view' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  
+  if (action === 'view') {
+    showHeader();
+    log.title('📋 API Key Details');
+    for (const key of foundKeys) {
+      console.log(`${theme.success('✓')} ${key.name}`);
+      console.log(`  Source: ${key.source}`);
+      console.log(`  Value: ${key.value}`);
+      console.log('');
+    }
+    if (foundKeys.length === 0) {
+      log.info('No keys configured yet.');
+      log.info('Use "Add New Key" to configure.');
+    }
+    await pause();
+  }
+  
+  if (action === 'add') {
+    const providers = [
+      { name: 'OpenAI', value: 'OPENAI_API_KEY' },
+      { name: 'Anthropic (Claude)', value: 'ANTHROPIC_API_KEY' },
+      { name: 'Google/Gemini', value: 'GOOGLE_API_KEY' },
+      { name: 'Fireworks AI', value: 'FIREWORKS_API_KEY' },
+      { name: 'Groq', value: 'GROQ_API_KEY' },
+      { name: 'GitHub Token', value: 'GITHUB_TOKEN' }
+    ];
+    
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Select provider:'),
+      choices: [...providers, new inquirer.Separator(), { name: theme.dim('← Cancel'), value: 'cancel' }]
+    }]);
+    
+    if (provider === 'cancel') return;
+    
+    const { key } = await inquirer.prompt([{
+      type: 'password',
+      name: 'key',
+      message: theme.accent('Enter API key:'),
+      mask: '•'
+    }]);
+    
+    if (!key.trim()) {
+      log.info('Cancelled');
+      await pause();
+      return;
+    }
+    
+    // Save to .env file
+    try {
+      const envPath = path.join(ROOT_DIR, '.env');
+      let content = '';
+      try { content = await fs.readFile(envPath, 'utf8'); } catch {}
+      
+      const lines = content.split('\n').filter(l => !l.startsWith(provider + '='));
+      lines.push(`${provider}=${key.trim()}`);
+      
+      await fs.writeFile(envPath, lines.join('\n'));
+      log.success(`✓ ${provider} saved to .env`);
+      log.info('Restart POPPY to use the new key');
+    } catch (e) {
+      log.error(`Failed to save: ${e.message}`);
+    }
+    
+    await pause();
+  }
+};
