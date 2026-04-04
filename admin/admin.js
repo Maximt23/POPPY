@@ -579,22 +579,7 @@ async function showGitMenu() {
   return action;
 }
 
-async function showSystemMenu() {
-  const { action } = await inquirer.prompt([{
-    type: 'list', name: 'action', message: theme.primary('System:'),
-    choices: [
-      { name: theme.accent('⚙️  Settings'), value: 'settings' },
-      { name: theme.secondary('📅 Daily Focus'), value: 'daily-focus' },
-      { name: theme.secondary('📋 View Log'), value: 'view-log' },
-      { name: theme.info('🤖 Agent Settings'), value: 'agent-settings' },
-      new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' }
-    ]
-  }]);
-  return action;
-}
 
-// ═══════════════════════════════════════════════════════════
-// 📅 DAILY FOCUS
 // ═══════════════════════════════════════════════════════════
 
 async function setDailyFocus() {
