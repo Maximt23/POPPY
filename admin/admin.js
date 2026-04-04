@@ -3268,3 +3268,153 @@ async function loadSkillsFromGit() {
 
 // Call this on startup
 loadSkillsFromGit().catch(() => {});
+// ═══════════════════════════════════════════════════════════
+// 🔧 FINAL FIX - Paths and Launch
+// ═══════════════════════════════════════════════════════════
+
+// FIX: Override loadProjects to convert to ABSOLUTE paths and return flat array
+loadProjects = async function() {
+  try {
+    const data = await fs.readFile(PROJECTS_FILE, 'utf8');
+    const parsed = JSON.parse(data);
+    let projects = parsed.projects || parsed || [];
+    
+    // Convert relative paths to ABSOLUTE
+    projects = projects.map(p => {
+      if (p.path && !path.isAbsolute(p.path)) {
+        p.path = path.resolve(ROOT_DIR, p.path);
+      }
+      return p;
+    });
+    
+    return projects;
+  } catch {
+    // If file doesn't exist, return hardcoded projects with ABSOLUTE paths
+    return [
+      { id: 'p1', name: 'WearWise', path: path.join(ROOT_DIR, 'P1'), type: 'React Native', active: true },
+      { id: 'p2', name: 'Project Two', path: path.join(ROOT_DIR, 'P2'), type: 'Node.js/Express', active: true },
+      { id: 'admin', name: 'Admin Console', path: path.join(ROOT_DIR, 'admin'), type: 'CLI Tool', active: true }
+    ];
+  }
+};
+
+// FIX: Override manageProjects to show ABSOLUTE paths
+manageProjects = async function() {
+  showHeader();
+  log.title('📁 Your Projects');
+  
+  const projects = await loadProjects();
+  
+  if (projects.length === 0) {
+    log.warning('No projects found.');
+    await pause();
+    return;
+  }
+  
+  log.success(`Found ${projects.length} project(s):`);
+  
+  const choices = projects.map(p => ({
+    name: `  ${p.name} ${theme.dim(`(${p.type})`)}`,
+    value: p.id
+  }));
+  
+  choices.push(new inquirer.Separator(), { name: theme.dim('← Back'), value: 'back' });
+  
+  const { projectId } = await inquirer.prompt([{
+    type: 'list',
+    name: 'projectId',
+    message: theme.accent('Select project:'),
+    choices,
+    pageSize: 15
+  }]);
+  
+  if (projectId === 'back') return;
+  
+  const project = projects.find(p => p.id === projectId);
+  
+  // Show project details with FULL PATH
+  showHeader();
+  log.title(`📁 ${project.name}`);
+  console.log(`Type: ${project.type}`);
+  console.log(`Path: ${theme.dim(project.path)}`);  // Now shows absolute path
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('What to do:'),
+    choices: [
+      { name: theme.accent('🚀 Open with Code Puppy'), value: 'launch' },
+      { name: theme.secondary('📂 Open in File Explorer'), value: 'explore' },
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'launch') {
+    try {
+      const { spawn } = await import('child_process');
+      
+      // Launch Code Puppy IN the project directory using ABSOLUTE path
+      const child = spawn('code-puppy', [], {
+        cwd: project.path,  // Use absolute path here
+        shell: true,
+        detached: true,
+        stdio: 'ignore'
+      });
+      
+      child.on('error', (err) => {
+        log.error(`Error: ${err.message}`);
+      });
+      
+      child.unref();
+      
+      log.success('✓ Launched Code Puppy in project directory!');
+      log.info(`Directory: ${project.path}`);
+      
+    } catch (error) {
+      log.error(`Launch failed: ${error.message}`);
+    }
+    await pause();
+  }
+  
+  if (action === 'explore') {
+    try {
+      const { spawn } = await import('child_process');
+      spawn('explorer', [project.path], { shell: true });
+      log.success('✓ Opened in Explorer');
+    } catch (error) {
+      log.error(`Failed: ${error.message}`);
+    }
+    await pause();
+  }
+};
+
+// FIX: Clean launchCodePuppy
+launchCodePuppy = async function() {
+  showHeader();
+  log.title('🐶 Launching Code Puppy');
+  
+  try {
+    const { spawn } = await import('child_process');
+    
+    const child = spawn('code-puppy', [], {
+      shell: true,
+      detached: true,
+      stdio: 'ignore'
+    });
+    
+    child.on('error', (err) => {
+      log.error(`Error: ${err.message}`);
+    });
+    
+    child.unref();
+    
+    log.success('✓ Launched! Check taskbar.');
+    
+  } catch (error) {
+    log.error(`Failed: ${error.message}`);
+  }
+  
+  await pause();
+};
