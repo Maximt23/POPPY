@@ -95,7 +95,7 @@ function isCreatorVersion() {
   try {
     // Check for creator marker file
     const fs = require('fs');
-    fs.accessSync(path.join(ROOT_DIR, '.creator'));
+    fs.accessSync(path.join(path.dirname(__dirname), '.creator'));
     return true;
   } catch {
     return false;
@@ -4106,7 +4106,7 @@ async function showSystemMenu() {
   log.title('⚙️ System');
   
   // Different menu for creator vs user
-  const isCreator = await isCreatorVersion();
+  const isCreator = isCreatorVersion();
   
   const choices = [
     { name: theme.info('📊 Analytics'), value: 'analytics' },
