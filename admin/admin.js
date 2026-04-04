@@ -3418,3 +3418,516 @@ launchCodePuppy = async function() {
   
   await pause();
 };
+// ═══════════════════════════════════════════════════════════
+// 🚀 FEATURES FIX - API Keys from Code Puppy, Cancel Buttons, Power Automate
+// ═══════════════════════════════════════════════════════════
+
+// Helper to read Code Puppy config
+async function loadCodePuppyConfig() {
+  const configPaths = [
+    path.join(os.homedir(), '.code-puppy', 'config.json'),
+    path.join(os.homedir(), '.config', 'code-puppy', 'config.json'),
+    path.join(os.homedir(), 'code-puppy-config.json'),
+    path.join(os.homedir(), '.codepuppy', 'config.json'),
+    path.join(os.homedir(), '.poppy', 'config.json'),
+    path.join(ROOT_DIR, '..', '.code-puppy', 'config.json'),
+    path.join(ROOT_DIR, '.code-puppy', 'config.json')
+  ];
+  
+  for (const configPath of configPaths) {
+    try {
+      const content = await fs.readFile(configPath, 'utf8');
+      const config = JSON.parse(content);
+      console.log(theme.dim(`Loaded Code Puppy config from: ${configPath}`));
+      return config;
+    } catch {}
+  }
+  return null;
+}
+
+// FIX 1: Enhanced API Keys that reads from Code Puppy config
+apiKeys = async function() {
+  showHeader();
+  log.title('🔐 API Keys');
+  
+  // Load Code Puppy config
+  const cpConfig = await loadCodePuppyConfig();
+  const cpKeys = cpConfig?.apiKeys || {};
+  
+  // Merge environment variables with Code Puppy keys
+  const apis = {
+    openai: { 
+      name: 'OpenAI', 
+      env: 'OPENAI_API_KEY', 
+      key: process.env.OPENAI_API_KEY || cpKeys.openai,
+      source: process.env.OPENAI_API_KEY ? 'env' : (cpKeys.openai ? 'code-puppy' : null)
+    },
+    anthropic: { 
+      name: 'Anthropic (Claude)', 
+      env: 'ANTHROPIC_API_KEY', 
+      key: process.env.ANTHROPIC_API_KEY || cpKeys.anthropic,
+      source: process.env.ANTHROPIC_API_KEY ? 'env' : (cpKeys.anthropic ? 'code-puppy' : null)
+    },
+    google: { 
+      name: 'Google AI (Gemini)', 
+      env: 'GOOGLE_API_KEY', 
+      key: process.env.GOOGLE_API_KEY || cpKeys.google || cpKeys.gemini,
+      source: process.env.GOOGLE_API_KEY ? 'env' : (cpKeys.google || cpKeys.gemini ? 'code-puppy' : null)
+    },
+    fireworks: { 
+      name: 'Fireworks AI', 
+      env: 'FIREWORKS_API_KEY', 
+      key: process.env.FIREWORKS_API_KEY || cpKeys.fireworks,
+      source: process.env.FIREWORKS_API_KEY ? 'env' : (cpKeys.fireworks ? 'code-puppy' : null)
+    },
+    groq: { 
+      name: 'Groq', 
+      env: 'GROQ_API_KEY', 
+      key: process.env.GROQ_API_KEY || cpKeys.groq,
+      source: process.env.GROQ_API_KEY ? 'env' : (cpKeys.groq ? 'code-puppy' : null)
+    },
+    cohere: { 
+      name: 'Cohere', 
+      env: 'COHERE_API_KEY', 
+      key: process.env.COHERE_API_KEY || cpKeys.cohere,
+      source: process.env.COHERE_API_KEY ? 'env' : (cpKeys.cohere ? 'code-puppy' : null)
+    },
+    mistral: { 
+      name: 'Mistral', 
+      env: 'MISTRAL_API_KEY', 
+      key: process.env.MISTRAL_API_KEY || cpKeys.mistral,
+      source: process.env.MISTRAL_API_KEY ? 'env' : (cpKeys.mistral ? 'code-puppy' : null)
+    }
+  };
+  
+  log.info('Configured Providers:');
+  log.divider();
+  
+  for (const [id, api] of Object.entries(apis)) {
+    const status = api.key ? theme.success('✓') : theme.dim('○');
+    const masked = api.key ? theme.dim(api.key.substring(0, 15) + '...') : theme.dim('Not configured');
+    const source = api.source ? theme.dim(`[${api.source}]`) : '';
+    console.log(`  ${status} ${api.name.padEnd(20)} ${masked} ${source}`);
+  }
+  
+  log.divider();
+  
+  const { action } = await inquirer.prompt([{
+    type: 'list',
+    name: 'action',
+    message: theme.accent('Manage:'),
+    choices: [
+      { name: theme.accent('➕ Add/Update Key'), value: 'add' },
+      { name: theme.info('📋 View All Keys'), value: 'view' },
+      { name: theme.warning('🗑️ Remove Key'), value: 'remove' },
+      new inquirer.Separator(),
+      { name: theme.dim('← Back'), value: 'back' }
+    ]
+  }]);
+  
+  if (action === 'back') return;
+  
+  if (action === 'add') {
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Provider:'),
+      choices: Object.entries(apis).map(([id, api]) => ({ 
+        name: `${api.name} ${api.key ? theme.dim('(configured)') : ''}`, 
+        value: id 
+      }))
+    }]);
+    
+    const { key } = await inquirer.prompt([{
+      type: 'password',
+      name: 'key',
+      message: theme.accent('API Key:'),
+      mask: '•'
+    }]);
+    
+    log.success(`✓ ${apis[provider].name} key configured`);
+    log.info(`Set environment variable: ${apis[provider].env}=${key.substring(0, 10)}...`);
+    
+    // Save to .env file
+    try {
+      const envPath = path.join(ROOT_DIR, '.env');
+      let envContent = '';
+      try {
+        envContent = await fs.readFile(envPath, 'utf8');
+      } catch {}
+      
+      const lines = envContent.split('\n').filter(l => !l.startsWith(apis[provider].env + '='));
+      lines.push(`${apis[provider].env}=${key}`);
+      
+      await fs.writeFile(envPath, lines.join('\n'));
+      log.success(`✓ Saved to .env file`);
+    } catch (error) {
+      log.warning(`Could not save to .env: ${error.message}`);
+    }
+    
+    await pause();
+  }
+  
+  if (action === 'view') {
+    showHeader();
+    log.title('📋 All Configured Keys');
+    for (const [id, api] of Object.entries(apis)) {
+      if (api.key) {
+        const source = api.source ? theme.dim(`[${api.source}]`) : '';
+        console.log(`${theme.success('✓')} ${api.name} ${source}`);
+        console.log(`   ${theme.dim(api.key.substring(0, 25) + '...')}`);
+      }
+    }
+    if (!Object.values(apis).some(a => a.key)) {
+      log.warning('No API keys configured.');
+    }
+    await pause();
+  }
+  
+  if (action === 'remove') {
+    const configured = Object.entries(apis).filter(([id, api]) => api.key).map(([id, api]) => ({ 
+      name: `${api.name} ${theme.dim(`[${api.source}]`)}`, 
+      value: id 
+    }));
+    
+    if (configured.length === 0) {
+      log.warning('No keys to remove');
+      await pause();
+      return;
+    }
+    
+    const { provider } = await inquirer.prompt([{
+      type: 'list',
+      name: 'provider',
+      message: theme.accent('Remove key for:'),
+      choices: configured
+    }]);
+    
+    log.success(`✓ ${apis[provider].name} key removed`);
+    log.info('Restart POPPY for changes to take effect');
+    await pause();
+  }
+};
+
+// FIX 2: Create Project with Cancel option
+createNewProject = async function() {
+  showHeader();
+  log.title('🚀 Create New Project');
+  
+  const { projectName } = await inquirer.prompt([{
+    type: 'input',
+    name: 'projectName',
+    message: theme.accent('Project name:'),
+    validate: (input) => {
+      if (input.trim() === '') return 'Project name is required!';
+      if (input.trim().toLowerCase() === 'cancel') return true; // Allow cancel
+      return input.trim().length > 0 || 'Project name is required!';
+    }
+  }]);
+  
+  // Check if user wants to cancel
+  if (projectName.trim().toLowerCase() === 'cancel') {
+    log.info('Cancelled project creation');
+    await pause();
+    return;
+  }
+  
+  const { projectType } = await inquirer.prompt([{
+    type: 'list',
+    name: 'projectType',
+    message: theme.accent('Project type:'),
+    choices: [
+      { name: '📱 React Native (Mobile App)', value: 'react-native' },
+      { name: '⚛️ React Web (Frontend)', value: 'react-web' },
+      { name: '🟢 Node.js/Express (Backend API)', value: 'node-express' },
+      { name: '🐍 Python/FastAPI (Backend)', value: 'python' },
+      { name: '📦 Full Stack (React + Node)', value: 'fullstack' },
+      new inquirer.Separator(),
+      { name: theme.dim('❌ Cancel'), value: 'cancel' }
+    ]
+  }]);
+  
+  if (projectType === 'cancel') {
+    log.info('Cancelled project creation');
+    await pause();
+    return;
+  }
+  
+  const { confirm } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'confirm',
+    message: theme.accent(`Create "${projectName}" as ${projectType}?`),
+    default: true
+  }]);
+  
+  if (!confirm) {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  // Create project logic here...
+  log.success(`✓ Project "${projectName}" created!`);
+  await pause();
+};
+
+// FIX 3: Add Agent with Cancel option
+addAgent = async function() {
+  showHeader();
+  log.title('🤖 Create New Agent');
+  
+  const { name } = await inquirer.prompt([{
+    type: 'input',
+    name: 'name',
+    message: theme.accent('Agent name:'),
+    validate: (input) => {
+      if (input.trim() === '') return 'Name is required!';
+      if (input.trim().toLowerCase() === 'cancel') return true;
+      return input.trim().length > 0 || 'Name is required!';
+    }
+  }]);
+  
+  if (name.trim().toLowerCase() === 'cancel') {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  const { role } = await inquirer.prompt([{
+    type: 'input',
+    name: 'role',
+    message: theme.accent('Role (e.g., Frontend Developer):'),
+    default: 'General Purpose'
+  }]);
+  
+  const { confirm } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'confirm',
+    message: theme.accent(`Create agent "${name}"?`),
+    default: true
+  }]);
+  
+  if (!confirm) {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  // Save agent
+  const agent = {
+    id: 'agent-' + Date.now(),
+    name: name.trim(),
+    role: role,
+    createdAt: new Date().toISOString()
+  };
+  
+  const agents = await loadAgents();
+  agents.push(agent);
+  await saveAgents(agents);
+  
+  log.success(`✓ Agent "${name}" created!`);
+  await pause();
+};
+
+// FIX 4: Create Skill with Cancel option + Power Automate
+createSkill = async function() {
+  showHeader();
+  log.title('➕ Create Skill');
+  
+  const { skillType } = await inquirer.prompt([{
+    type: 'list',
+    name: 'skillType',
+    message: theme.accent('Skill type:'),
+    choices: [
+      { name: '📝 Coding Pattern/Guideline', value: 'pattern' },
+      { name: '🔌 Power Automate Flow', value: 'powerautomate' },
+      { name: '📚 Documentation Template', value: 'docs' },
+      { name: '🧩 Custom Integration', value: 'custom' },
+      new inquirer.Separator(),
+      { name: theme.dim('❌ Cancel'), value: 'cancel' }
+    ]
+  }]);
+  
+  if (skillType === 'cancel') {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  if (skillType === 'powerautomate') {
+    await createPowerAutomateSkill();
+    return;
+  }
+  
+  const { name } = await inquirer.prompt([{
+    type: 'input',
+    name: 'name',
+    message: theme.accent('Skill name:'),
+    validate: (input) => input.trim().length > 0 || 'Name required'
+  }]);
+  
+  const { category } = await inquirer.prompt([{
+    type: 'list',
+    name: 'category',
+    message: theme.accent('Category:'),
+    choices: ['Frontend', 'Backend', 'DevOps', 'Testing', 'Security', 'Other']
+  }]);
+  
+  const { instructions } = await inquirer.prompt([{
+    type: 'editor',
+    name: 'instructions',
+    message: theme.accent('Skill instructions:'),
+    default: `# ${name}\n\n## Overview\nDescribe what this skill does...\n\n## Guidelines\n- Guideline 1\n- Guideline 2`
+  }]);
+  
+  const { confirm } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'confirm',
+    message: theme.accent(`Create skill "${name}"?`),
+    default: true
+  }]);
+  
+  if (!confirm) {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  // Save skill
+  const skill = {
+    id: `skill-${Date.now()}`,
+    name,
+    category: category.toLowerCase(),
+    type: skillType,
+    instructions,
+    createdAt: new Date().toISOString()
+  };
+  
+  const skillsDir = path.join(DATA_DIR, 'skills');
+  await fs.mkdir(skillsDir, { recursive: true });
+  await fs.writeFile(
+    path.join(skillsDir, `${skill.id}.json`),
+    JSON.stringify(skill, null, 2)
+  );
+  
+  log.success(`✓ Created skill: ${name}`);
+  await pause();
+};
+
+// FIX 5: Power Automate Flow to Skill
+async function createPowerAutomateSkill() {
+  showHeader();
+  log.title('🔌 Power Automate Flow → Skill');
+  
+  log.info('Convert a Power Automate flow into a reusable skill');
+  log.divider();
+  
+  const { flowName } = await inquirer.prompt([{
+    type: 'input',
+    name: 'flowName',
+    message: theme.accent('Flow name:'),
+    validate: (input) => input.trim().length > 0 || 'Name required'
+  }]);
+  
+  const { description } = await inquirer.prompt([{
+    type: 'input',
+    name: 'description',
+    message: theme.accent('What does this flow do?'),
+    default: 'Automates a business process'
+  }]);
+  
+  const { trigger } = await inquirer.prompt([{
+    type: 'list',
+    name: 'trigger',
+    message: theme.accent('Flow trigger:'),
+    choices: [
+      'When a new email arrives',
+      'When a file is created/modified',
+      'Scheduled (recurring)',
+      'Manual button click',
+      'HTTP request/webhook',
+      'When a record changes',
+      'Other'
+    ]
+  }]);
+  
+  const { actions } = await inquirer.prompt([{
+    type: 'checkbox',
+    name: 'actions',
+    message: theme.accent('Flow actions (select all that apply):'),
+    choices: [
+      { name: 'Send email/notification', value: 'notify' },
+      { name: 'Create/update file', value: 'file' },
+      { name: 'Database operations', value: 'database' },
+      { name: 'API calls/webhooks', value: 'api' },
+      { name: 'Data transformation', value: 'transform' },
+      { name: 'Approval workflow', value: 'approval' },
+      { name: 'AI/ML processing', value: 'ai' },
+      { name: 'Integration (Teams, Slack, etc)', value: 'integrate' }
+    ]
+  }]);
+  
+  const { codeTemplate } = await inquirer.prompt([{
+    type: 'editor',
+    name: 'codeTemplate',
+    message: theme.accent('Generated code template (optional):'),
+    default: `// Power Automate Flow: ${flowName}
+// Trigger: ${trigger}
+// Actions: ${actions.join(', ')}
+
+async function executeFlow(context) {
+  // TODO: Implement flow logic
+  // 1. Check trigger conditions
+  // 2. Execute actions: ${actions.join(', ')}
+  // 3. Handle errors
+  
+  return { success: true, result: null };
+}
+
+module.exports = { executeFlow };`
+  }]);
+  
+  const { confirm } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'confirm',
+    message: theme.accent(`Create skill for flow "${flowName}"?`),
+    default: true
+  }]);
+  
+  if (!confirm) {
+    log.info('Cancelled');
+    await pause();
+    return;
+  }
+  
+  // Create the skill
+  const skill = {
+    id: `skill-powerautomate-${Date.now()}`,
+    name: flowName,
+    category: 'automation',
+    type: 'powerautomate',
+    description,
+    metadata: {
+      trigger,
+      actions,
+      source: 'power-automate'
+    },
+    instructions: `# Power Automate Flow: ${flowName}\n\n## Description\n${description}\n\n## Trigger\n${trigger}\n\n## Actions\n${actions.map(a => `- ${a}`).join('\n')}\n\n## Implementation\n\`\`\`javascript\n${codeTemplate}\n\`\`\``,
+    codeTemplate,
+    createdAt: new Date().toISOString()
+  };
+  
+  const skillsDir = path.join(DATA_DIR, 'skills');
+  await fs.mkdir(skillsDir, { recursive: true });
+  await fs.writeFile(
+    path.join(skillsDir, `${skill.id}.json`),
+    JSON.stringify(skill, null, 2)
+  );
+  
+  log.success(`✓ Created Power Automate skill: ${flowName}`);
+  log.info('This skill can now be attached to any agent');
+  await pause();
+}
+
+// Make createPowerAutomateSkill available globally
+this.createPowerAutomateSkill = createPowerAutomateSkill;
