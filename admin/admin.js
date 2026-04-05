@@ -205,15 +205,19 @@ async function saveAgent(agent) {
 }
 
 async function saveAgents(agentsData) {
+  // Handle both formats: {agents: []} and plain []
+  const agents = Array.isArray(agentsData) ? agentsData : (agentsData.agents || []);
+  
   // Save all agents as individual files
   await fs.mkdir(AGENTS_DIR, { recursive: true });
   
-  for (const agent of agentsData.agents) {
+  for (const agent of agents) {
     await saveAgent(agent);
   }
   
   // Also update legacy file for backward compatibility
-  await fs.writeFile(LEGACY_AGENTS_FILE, JSON.stringify(agentsData, null, 2));
+  const saveData = Array.isArray(agentsData) ? { agents: agentsData, lastUpdated: new Date().toISOString() } : agentsData;
+  await fs.writeFile(LEGACY_AGENTS_FILE, JSON.stringify(saveData, null, 2));
 }
 
 async function deleteAgent(agentId) {
@@ -458,6 +462,12 @@ async function loadProjects() {
   try {
     const data = await fs.readFile(PROJECTS_FILE, 'utf8');
     const projects = JSON.parse(data);
+    
+    // Ensure projects.projects exists
+    if (!projects || !projects.projects || !Array.isArray(projects.projects)) {
+      projects.projects = [];
+    }
+    
     // Add default projects if not present
     const defaults = [
       { id: 'p1', name: 'WearWise', path: 'P1', type: 'React Native', active: true },
@@ -466,10 +476,9 @@ async function loadProjects() {
     ];
     
     // Merge with defaults
-    const projectIds = new Set(projects.projects?.map(p => p.id) || []);
+    const projectIds = new Set(projects.projects.map(p => p.id));
     for (const def of defaults) {
       if (!projectIds.has(def.id)) {
-        projects.projects = projects.projects || [];
         projects.projects.push(def);
       }
     }
@@ -3766,7 +3775,7 @@ createNewProject = async function() {
     
     // Save to projects registry
     const projects = await loadProjects();
-    projects.projects.push({
+    projects.push({
       id: projectId,
       name: projectName,
       path: projectId,
@@ -3775,7 +3784,7 @@ createNewProject = async function() {
       createdAt: new Date().toISOString(),
       gitInitialized: false
     });
-    await saveProjects(projects);
+    await saveProjects({ projects });
     
     log.success(`✓ Project "${projectName}" created!`);
     log.info(`📁 Location: ${projectDir}`);
@@ -3837,9 +3846,9 @@ addAgent = async function() {
     createdAt: new Date().toISOString()
   };
   
-  const agents = await loadAgents();
-  agents.push(agent);
-  await saveAgents(agents);
+  const agentsData = await loadAgents();
+  agentsData.push(agent);
+  await saveAgents(agentsData);
   
   log.success(`✓ Agent "${name}" created!`);
   await pause();
