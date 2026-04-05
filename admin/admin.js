@@ -3757,7 +3757,33 @@ createNewProject = async function() {
   }
   
   // Create project logic here...
-  log.success(`✓ Project "${projectName}" created!`);
+  const projectId = `p${Date.now().toString(36)}`;
+  const projectDir = path.join(ROOT_DIR, projectId);
+  
+  try {
+    // Create project directory
+    await fs.mkdir(projectDir, { recursive: true });
+    
+    // Save to projects registry
+    const projects = await loadProjects();
+    projects.projects.push({
+      id: projectId,
+      name: projectName,
+      path: projectId,
+      type: projectType,
+      active: true,
+      createdAt: new Date().toISOString(),
+      gitInitialized: false
+    });
+    await saveProjects(projects);
+    
+    log.success(`✓ Project "${projectName}" created!`);
+    log.info(`📁 Location: ${projectDir}`);
+    log.info(`🆔 Project ID: ${projectId}`);
+  } catch (err) {
+    log.error(`Failed to create project: ${err.message}`);
+  }
+  
   await pause();
 };
 
