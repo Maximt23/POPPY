@@ -1,3 +1,5 @@
+![Maxim banner](./maxim_terminal_final_contact.gif)
+
 # POPPY - Universal AI Project Manager
 
 ```
