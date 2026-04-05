@@ -840,7 +840,7 @@ async function addAgent() {
     }
   ]);
 
-  const data = await loadAgents();
+  const agents = await loadAgents();
   
   const newAgent = {
     id: `agent-${Date.now()}`,
@@ -854,10 +854,8 @@ async function addAgent() {
     usageCount: 0
   };
 
-  data.agents.push(newAgent);
-  data.lastUpdated = new Date().toISOString();
-  await saveAgents(data);
-
+  agents.push(newAgent);
+  await saveAgents(agents);
   log.divider();
   log.success(`Agent "${name}" added to inventory!`);
   log.agent(`ID: ${newAgent.id}`);
@@ -1089,7 +1087,7 @@ async function createNewProject() {
 
     // Save to projects registry
     const projects = await loadProjects();
-    projects.projects.push({
+    projects.push({
       id: projectId,
       name: answers.name,
       path: projectId,
@@ -1098,7 +1096,7 @@ async function createNewProject() {
       createdAt: new Date().toISOString(),
       gitInitialized
     });
-    await saveProjects(projects);
+    await saveProjects({ projects });
 
     spinner.succeed(theme.accent(`Project "${answers.name}" created!`));
 
@@ -1300,7 +1298,7 @@ async function createStarterAgents(agentTypes, projectId, projectName) {
   for (const agentType of agentTypes) {
     const template = agentTemplates[agentType];
     if (template) {
-      data.agents.push({
+      data.push({
         id: `agent-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         name: template.name,
         description: template.description,
@@ -1316,7 +1314,6 @@ async function createStarterAgents(agentTypes, projectId, projectName) {
     }
   }
 
-  data.lastUpdated = new Date().toISOString();
   await saveAgents(data);
 }
 
@@ -1383,7 +1380,7 @@ async function quickAgentMode() {
       }
     ]);
 
-    data.agents.push({
+    data.push({
       id: `agent-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       name: name.trim(),
       description: description.trim(),
@@ -1399,7 +1396,6 @@ async function quickAgentMode() {
     log.success(`Agent "${name}" created!`);
   }
 
-  data.lastUpdated = new Date().toISOString();
   await saveAgents(data);
 
   log.divider();
