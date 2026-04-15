@@ -1,5 +1,5 @@
 {
-  "name": "poppy-admin",
+  "name": "poppy",
   "version": "1.0.0",
   "description": "POPPY - Universal AI Project Manager for organizing code across any AI coding engine",
   "main": "admin.js",
@@ -17,7 +17,11 @@
     "code-organization",
     "agent-management",
     "monorepo",
-    "cli"
+    "cli",
+    "cursor",
+    "claude",
+    "codex",
+    "ai-workspace"
   ],
   "author": "Maxim",
   "license": "MIT",
@@ -33,6 +37,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Maximt23/code-puppy-POPPY.git"
-  }
+    "url": "https://github.com/Maximt23/POPPY.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Maximt23/POPPY/issues"
+  },
+  "homepage": "https://github.com/Maximt23/POPPY#readme"
 }

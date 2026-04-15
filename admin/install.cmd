@@ -38,14 +38,13 @@ for /f "tokens=*" %%a in ('npm --version') do set NPM_VERSION=%%a
 echo [OK] npm %NPM_VERSION% found
 echo.
 
-REM Install globally
-echo Installing POPPY globally...
-npm install -g poppy-admin
+REM Install local dependencies
+cd /d "%~dp0"
+echo Installing dependencies...
+npm install
 
 if errorlevel 1 (
-    echo [ERROR] Installation failed
-    pause
-    exit /b 1
+    echo [WARNING] Some dependencies may have failed, but POPPY should still work
 )
 
 echo.
@@ -54,9 +53,12 @@ echo   POPPY installed successfully!
 echo ==============================================
 echo.
 echo To get started:
-echo   1. Run: poppy --setup
-echo   2. Run: poppy
+echo   1. Run: poppy
+echo   2. Select 'New Project' to create your first project
 echo.
 echo For help: poppy --help
+echo.
+echo To add POPPY to your PATH, run this command from any folder:
+echo   setx PATH "%%PATH%%;%~dp0"
 echo.
 pause
